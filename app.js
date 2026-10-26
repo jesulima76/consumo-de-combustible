@@ -81,25 +81,44 @@ async function loadCompras() {
 
 function renderDashboard(d) {
   const cards = [
-    ["Kilómetros recorridos", fmt(d.kilometros), "km", "↗"],
-    ["Litros comprados", fmt(d.litrosComprados, 2), "litros", "＋"],
-    ["Litros cargados", fmt(d.litrosCargados, 2), "litros", "⇧"],
-    ["Litros consumidos", fmt(d.litrosConsumidos, 2), "litros estimados", "◉"],
-    ["Rendimiento promedio", fmt(d.rendimientoPromedio, 2), "km por litro", "⌁"],
-    ["Compras en USD", money(d.importeUSD), "importe registrado", "$"],
-    ["Compras en bolívares", money(d.importeBs, "VES"), "según tasa BCV registrada", "Bs"],
-    ["Recorridos registrados", fmt(d.totalRegistros, 0), "registros", "▤"]
+    ["Kilómetros recorridos", fmt(d.kilometros), "km", "↗", "kpi-blue"],
+    ["Litros comprados", fmt(d.litrosComprados, 2), "litros", "＋", "kpi-green"],
+    ["Litros cargados", fmt(d.litrosCargados, 2), "litros", "⇧", "kpi-amber"],
+    ["Litros consumidos", fmt(d.litrosConsumidos, 2), "litros estimados", "◉", "kpi-teal"],
+    ["Rendimiento promedio", fmt(d.rendimientoPromedio, 2), "km por litro", "⌁", "kpi-indigo"],
+    ["Compras en USD", money(d.importeUSD), "importe registrado", "$", "kpi-emerald"],
+    ["Compras en bolívares", money(d.importeBs, "VES"), "según tasa BCV", "Bs", "kpi-purple"],
+    ["Recorridos registrados", fmt(d.totalRegistros, 0), "registros", "▤", "kpi-slate"]
   ];
-  $("#kpi-grid").innerHTML = cards.map(c => `<article class="kpi-card"><div class="kpi-top"><span class="kpi-label">${c[0]}</span><span class="kpi-icon">${c[3]}</span></div><div class="kpi-value">${c[1]}</div><div class="kpi-unit">${c[2]}</div></article>`).join("");
+  
+  $("#kpi-grid").innerHTML = cards.map(c => `
+    <article class="kpi-card ${c[4]}">
+      <div class="kpi-top">
+        <span class="kpi-label">${c[0]}</span>
+        <span class="kpi-icon">${c[3]}</span>
+      </div>
+      <div class="kpi-value">${c[1]}</div>
+      <div class="kpi-unit">${c[2]}</div>
+    </article>
+  `).join("");
+
   const units = d.porUnidad || [];
-  $("#unit-table").innerHTML = units.length ? units.map(x => `<tr><td><strong>${esc(x.placa)}</strong></td><td>${fmt(x.viajes,0)}</td><td>${fmt(x.km)} km</td><td>${fmt(x.litros,2)} L</td><td>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</td></tr>`).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
+  $("#unit-table").innerHTML = units.length ? units.map(x => `
+    <tr>
+      <td><span class="pill">${esc(x.placa)}</span></td>
+      <td>${fmt(x.viajes,0)}</td>
+      <td>${fmt(x.km)} km</td>
+      <td>${fmt(x.litros,2)} L</td>
+      <td><strong>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</strong></td>
+    </tr>
+  `).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
 }
 
 function renderConsumos() {
   $("#consumos-table").innerHTML = state.consumos.length ? state.consumos.map(x => `
     <tr>
       <td>${esc(x.Fecha)}</td>
-      <td><strong>${esc(x.Placa)}</strong></td>
+      <td><span class="pill">${esc(x.Placa)}</span></td>
       <td>${esc(x.Chofer)}</td>
       <td>${esc(x["Zona / Ruta"] || "—")}</td>
       <td>${fmt(x["Km Recorridos"])} km</td>
