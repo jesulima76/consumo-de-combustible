@@ -1,6 +1,5 @@
 /**
  * Frontend de Control de Consumo de Gasoil - Fleet Fuel Telematics
- * Adaptado a la guía de estilo DESIGN.md.
  */
 const API_URL = "https://script.google.com/macros/s/AKfycbzGRZJXSS9yXPsZtShiQ41lCetNcmVGvYz9rqs03Z6kWGpR9jnLeseskM9TqWwl0_ZkHw/exec";
 
@@ -229,7 +228,7 @@ function renderVehiculos() {
           <div class="entity-avatar">TRK</div>
           <div>
             <h4>${esc(x.placa)}</h4>
-            <p>${esc(x.marca)} ${esc(x.modelo)}</p>
+            <p>${esc(x.marca)}${esc(x.modelo)}</p>
           </div>
         </div>
         <div class="entity-meta">
@@ -246,7 +245,7 @@ function renderVehiculos() {
   }).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
 }
 
-/* FUNCIONES DE ACCIÓN EN EL ÁMBITO GLOBAL (WINDOW) */
+/* FUNCIONES EXPORTADAS AL ÁMBITO GLOBAL (WINDOW) */
 window.editChofer = function(id) {
   const chofer = state.choferes.find(c => String(c.id) === String(id));
   if (!chofer) return;
@@ -355,10 +354,10 @@ window.confirmDeleteCompra = async function(id) {
 function populateSelects() {
   const driver = $("#consumo-chofer"), vehicle = $("#consumo-placa"), filter = $("#consumo-filter-placa");
   if (driver) {
-    driver.innerHTML = '<option value="">Seleccione un chofer</option>' + state.choferes.filter(x => String(x.estatus).toLowerCase() === "activo").map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} · ${esc(x.cedula)}</option>`).join("");
+    driver.innerHTML = '<option value="">Seleccione un chofer</option>' + state.choferes.filter(x => String(x.estatus).toLowerCase() === "activo").map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} ·${esc(x.cedula)}</option>`).join("");
   }
   if (vehicle) {
-    vehicle.innerHTML = '<option value="">Seleccione un vehículo</option>' + state.vehiculos.filter(x => !["inactivo"].includes(String(x.estatus).toLowerCase())).map(x => `<option value="${esc(x.placa)}">${esc(x.placa)} · ${esc(x.marca)} ${esc(x.modelo)}</option>`).join("");
+    vehicle.innerHTML = '<option value="">Seleccione un vehículo</option>' + state.vehiculos.filter(x => !["inactivo"].includes(String(x.estatus).toLowerCase())).map(x => `<option value="${esc(x.placa)}">${esc(x.placa)} · ${esc(x.marca)}${esc(x.modelo)}</option>`).join("");
   }
   if (filter) {
     const old = filter.value;
@@ -404,7 +403,7 @@ function bindNavigation() {
 
   $("#consumo-placa")?.addEventListener("change", () => {
     const v = state.vehiculos.find(x => x.placa === $("#consumo-placa").value);
-    if ($("#consumo-modelo")) $("#consumo-modelo").value = v ? `${v.marca} ${v.modelo}` : "";
+    if ($("#consumo-modelo")) $("#consumo-modelo").value = v ? `${v.marca}${v.modelo}` : "";
     if (!$("#consumo-id")?.value && $("#consumo-factor")) {
       $("#consumo-factor").value = v ? (v.factor || 0) : 0;
     }
@@ -412,12 +411,7 @@ function bindNavigation() {
   });
 
   ["kmSalida","kmLlegada","litrosIniciales","litrosCargados","factor"].forEach(n => {
-    const el = $(`#consumo-form [name="${n}"]`);
-    if (el) el.addEventListener("input", updateConsumoPreview);
-  });
-  
-  ["litros","precioUsd","tasaBcv"].forEach(n => {
-    const el = $(`#compra-form [name="${n}"]`);
+    const el = $(`#consumo-form [name="${n}"]`); if (el) el.addEventListener("input", updateConsumoPreview); });  ["litros","precioUsd","tasaBcv"].forEach(n => { const el = $(`#compra-form [name="${n}"]`);
     if (el) el.addEventListener("input", updateCompraPreview);
   });
 }
@@ -449,91 +443,4 @@ function bindForms() {
     const f = Object.fromEntries(new FormData(form).entries());
     try {
       const result = await apiPost("saveConsumo", f);
-      showToast(f.id ? "Recorrido actualizado." : `Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado: ${fmt(result.litrosConsumidos,2)} L.`);
-      form?.reset();
-      if ($("#consumo-id")) $("#consumo-id").value = "";
-      if ($("#consumo-factor")) $("#consumo-factor").value = 0;
-      if ($("#consumo-modelo")) $("#consumo-modelo").value = "";
-      $("#consumo-form-panel")?.classList.add("hidden"); 
-      await Promise.all([loadDashboard(), loadConsumos()]);
-    } catch (err) { showToast(err.message, true); }
-  });
-
-  $("#chofer-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = Object.fromEntries(new FormData(form).entries());
-    try {
-      await apiPost("saveChofer", f);
-      showToast(f.id ? "Chofer actualizado correctamente." : "Chofer guardado correctamente."); 
-      form?.reset();
-      if ($("#chofer-id")) $("#chofer-id").value = "";
-      $("#chofer-form-panel")?.classList.add("hidden");
-      state.choferes = await apiGet("choferes"); populateSelects(); renderChoferes();
-    } catch (err) { showToast(err.message, true); }
-  });
-
-  $("#vehiculo-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = Object.fromEntries(new FormData(form).entries());
-    try {
-      await apiPost("saveVehiculo", f);
-      showToast(f.id ? "Vehículo actualizado correctamente." : "Vehículo registrado correctamente."); 
-      form?.reset();
-      if ($("#vehiculo-id")) $("#vehiculo-id").value = "";
-      $("#vehiculo-form-panel")?.classList.add("hidden");
-      state.vehiculos = await apiGet("vehiculos"); populateSelects(); renderVehiculos();
-    } catch (err) { showToast(err.message, true); }
-  });
-
-  $("#compra-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = Object.fromEntries(new FormData(form).entries());
-    try {
-      const result = await apiPost("saveCompra", f);
-      showToast(f.id ? "Compra actualizada correctamente." : `Compra guardada: ${money(result.importeUSD)} / ${money(result.importeBs,"VES")}.`);
-      form?.reset();
-      if ($("#compra-id")) $("#compra-id").value = "";
-      $("#compra-form-panel")?.classList.add("hidden");
-      await Promise.all([loadCompras(), loadDashboard()]);
-    } catch (err) { showToast(err.message, true); }
-  });
-}
-
-function updateConsumoPreview() {
-  const f = $("#consumo-form");
-  if (!f) return;
-  const km = Math.max(0, Number(f.elements.kmLlegada?.value || 0) - Number(f.elements.kmSalida?.value || 0));
-  const total = Number(f.elements.litrosIniciales?.value || 0) + Number(f.elements.litrosCargados?.value || 0);
-  const factor = Number(f.elements.factor?.value || 0);
-  const used = factor > 0 ? Math.min(total, km * factor) : 0;
-  const preview = $("#consumo-preview");
-  if (preview) {
-    preview.textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculado: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
-  }
-}
-
-function updateCompraPreview() {
-  const f = $("#compra-form");
-  if (!f) return;
-  const usd = Number(f.elements.litros?.value || 0) * Number(f.elements.precioUsd?.value || 0);
-  const bs = usd * Number(f.elements.tasaBcv?.value || 0);
-  const preview = $("#compra-preview");
-  if (preview) {
-    preview.textContent = `Importe estimado: ${money(usd)} · Equivalente: ${money(bs,"VES")}.`;
-  }
-}
-
-function emptyRow(cols, message) { return `<tr><td class="empty-cell" colspan="${cols}">${esc(message)}</td></tr>`; }
-function initials(name) { return String(name || "?").split(/\s+/).slice(0,2).map(x => x[0] || "").join("").toUpperCase(); }
-
-function showToast(message, error = false) {
-  const toast = $("#toast"); 
-  if (!toast) return;
-  toast.textContent = message; toast.classList.toggle("error", error); toast.classList.add("show");
-  window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 4500);
-}
-
-async function withError(fn) { try { await fn(); } catch (err) { showToast(err.message, true); } }
+      showToast(f.id ? "Recorrido actualizado." : `Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado:${fmt
