@@ -66,7 +66,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* OpenType Tabular Nums for Telemetry */
 .tabular-nums, table, .kpi-value, .metric-val {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
@@ -81,14 +80,12 @@ button {
   cursor: pointer;
 }
 
-/* App Shell Layout */
 .app-shell {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 270px minmax(0, 1fr);
 }
 
-/* Sidebar Navigation */
 .sidebar {
   background: var(--on-surface);
   color: var(--surface-bright);
@@ -206,7 +203,6 @@ button {
   box-shadow: 0 0 8px #10b981;
 }
 
-/* Main Area */
 .main-content {
   min-width: 0;
   padding: 0 32px 32px;
@@ -323,7 +319,6 @@ button {
   border-radius: var(--radius-md);
 }
 
-/* KPI Grid & Cards */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -392,7 +387,6 @@ button {
   font-weight: 500;
 }
 
-/* Panels & Tables */
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr);
@@ -493,7 +487,6 @@ tbody tr:hover {
   font-size: 14px;
 }
 
-/* Quick Actions */
 .quick-actions {
   display: grid;
   gap: 12px;
@@ -554,7 +547,6 @@ tbody tr:hover {
   font-weight: 700;
 }
 
-/* Buttons */
 .btn {
   border: 0;
   border-radius: var(--radius-md);
@@ -621,7 +613,6 @@ tbody tr:hover {
   border-radius: var(--radius-md);
 }
 
-/* Forms & Inputs */
 .form-panel {
   border-color: var(--primary-container);
   background: var(--surface-container-lowest);
@@ -687,4 +678,262 @@ tbody tr:hover {
 
 .form-actions {
   display: flex;
-  justify-content: flex-
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-container-low);
+  font-size: 20px;
+  color: var(--on-surface-variant);
+  display: grid;
+  place-items: center;
+  transition: background 0.15s;
+}
+
+.icon-button:hover {
+  background: var(--surface-container-high);
+}
+
+.form-summary {
+  background: var(--surface-container-low);
+  border: 1px solid var(--surface-container-highest);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* CARDS DE ENTIDADES (CHOFERES Y CAMIONES) CON BORDES TELEMÁTICOS */
+.entity-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  width: 100% !important;
+  margin-top: 8px !important;
+}
+
+.entity-card {
+  border: 1px solid var(--outline-variant) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 20px !important;
+  background: var(--surface-container-lowest) !important;
+  box-shadow: var(--shadow-sm) !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+/* Indicador visual vertical telemático de 4px de grosor */
+.entity-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #10b981; /* Verde esmeralda por defecto */
+}
+
+.entity-card.status-warning::before {
+  background: var(--amber); /* Ámbar atención */
+}
+
+.entity-card.status-danger::before {
+  background: var(--error); /* Rojo alerta */
+}
+
+.entity-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--outline) !important;
+}
+
+.entity-card-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+  padding-left: 4px !important;
+}
+
+.entity-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface-container) !important;
+  color: var(--primary) !important;
+  display: grid !important;
+  place-items: center !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  flex-shrink: 0 !important;
+  border: 1px solid var(--outline-variant) !important;
+}
+
+.entity-card h4 {
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--on-surface) !important;
+  overflow-wrap: anywhere !important;
+}
+
+.entity-card p {
+  font-size: 12px !important;
+  color: var(--on-surface-variant) !important;
+  margin: 2px 0 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.entity-meta {
+  border-top: 1px solid var(--outline-variant) !important;
+  padding-top: 12px !important;
+  margin-top: 10px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: var(--on-surface-variant) !important;
+}
+
+.entity-actions {
+  margin-top: 14px !important;
+  padding-top: 12px !important;
+  border-top: 1px dashed var(--outline-variant) !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.action-group {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.pill {
+  padding: 4px 10px !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--surface-container) !important;
+  color: var(--primary) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.pill.sand {
+  background: var(--amber-container) !important;
+  color: var(--amber-text) !important;
+}
+
+.pill.danger {
+  background: var(--error-container) !important;
+  color: var(--on-error-container) !important;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 100;
+  max-width: min(420px, calc(100vw - 32px));
+  background: var(--on-surface);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.error {
+  background: var(--error);
+}
+
+.loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--outline-variant);
+  border-top-color: var(--primary-container);
+  border-radius: var(--radius-full);
+  animation: spin 0.7s linear infinite;
+}
+
+.loading-panel.hide {
+  display: none;
+}
+
+.app-footer {
+  text-align: center;
+  color: var(--on-surface-variant);
+  font-size: 12px;
+  padding: 24px 0 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1200px) {
+  .app-shell { grid-template-columns: 230px minmax(0, 1fr); }
+  .main-content { padding: 0 20px 20px; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .entity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .welcome-row { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 768px) {
+  .app-shell { display: block; }
+  .sidebar { position: static; height: auto; padding: 16px; }
+  .brand { padding: 0 0 12px; }
+  .nav-label, .sidebar-foot { display: none; }
+  .nav-list { display: flex; overflow-x: auto; padding-bottom: 4px; }
+  .nav-item { flex-shrink: 0; padding: 8px 12px; font-size: 13px; }
+  .nav-item span { display: none; }
+  .main-content { padding: 0 16px 20px; }
+  .topbar { height: auto; padding: 16px 0; margin-bottom: 20px; }
+  .topbar h1 { font-size: 20px; }
+  .today-label { display: none; }
+  .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .entity-grid { grid-template-columns: 1fr !important; }
+}
