@@ -13,13 +13,14 @@ const today = () => new Date().toLocaleDateString("en-CA");
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
 document.addEventListener("DOMContentLoaded", () => {
-  $("#today-label").textContent = new Date().toLocaleDateString("es-VE", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const todayLabel = $("#today-label");
+  if (todayLabel) todayLabel.textContent = new Date().toLocaleDateString("es-VE", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   $$('input[type="date"]').forEach(input => { if (!input.value) input.value = today(); });
   bindNavigation();
   bindForms();
   if (!API_URL.startsWith("https://script.google.com/")) {
     showToast("Configure API_URL en app.js con la URL de su Web App de Apps Script.", true);
-    $("#dashboard-loading").classList.add("hide");
+    $("#dashboard-loading")?.classList.add("hide");
     return;
   }
   loadAll();
@@ -53,29 +54,32 @@ async function loadAll() {
     state.choferes = await apiGet("choferes");
     state.vehiculos = await apiGet("vehiculos");
     await Promise.all([loadDashboard(), loadConsumos(), loadCompras()]);
-    renderChoferes(); renderVehiculos(); populateSelects();
+    renderChoferes(); 
+    renderVehiculos(); 
+    populateSelects();
   } catch (err) {
     showToast(err.message + " Verifique la URL y los permisos del despliegue.", true);
   } finally { setLoading(false); }
 }
 
-function setLoading(on) { $("#dashboard-loading").classList.toggle("hide", !on); }
+function setLoading(on) { $("#dashboard-loading")?.classList.toggle("hide", !on); }
 
 async function loadDashboard() {
-  const data = await apiGet("dashboard", { desde: $("#dash-from").value, hasta: $("#dash-to").value });
+  const data = await apiGet("dashboard", { desde: $("#dash-from")?.value || "", hasta: $("#dash-to")?.value || "" });
   state.dashboard = data; renderDashboard(data);
 }
 
 async function loadConsumos() {
   state.consumos = await apiGet("consumos", {
-    desde: $("#consumo-filter-from").value, hasta: $("#consumo-filter-to").value,
-    placa: $("#consumo-filter-placa").value
+    desde: $("#consumo-filter-from")?.value || "", 
+    hasta: $("#consumo-filter-to")?.value || "",
+    placa: $("#consumo-filter-placa")?.value || ""
   });
   renderConsumos();
 }
 
 async function loadCompras() {
-  state.compras = await apiGet("compras", { desde: $("#compras-filter-from").value, hasta: $("#compras-filter-to").value });
+  state.compras = await apiGet("compras", { desde: $("#compras-filter-from")?.value || "", hasta: $("#compras-filter-to")?.value || "" });
   renderCompras();
 }
 
@@ -91,31 +95,39 @@ function renderDashboard(d) {
     ["Recorridos registrados", fmt(d.totalRegistros, 0), "registros", "▤"]
   ];
   
-  $("#kpi-grid").innerHTML = cards.map(c => `
-    <article class="kpi-card">
-      <div class="kpi-top">
-        <span class="kpi-label">${c[0]}</span>
-        <span class="kpi-icon">${c[3]}</span>
-      </div>
-      <div class="kpi-value">${c[1]}</div>
-      <div class="kpi-unit">${c[2]}</div>
-    </article>
-  `).join("");
+  const kpiGrid = $("#kpi-grid");
+  if (kpiGrid) {
+    kpiGrid.innerHTML = cards.map(c => `
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">${c[0]}</span>
+          <span class="kpi-icon">${c[3]}</span>
+        </div>
+        <div class="kpi-value">${c[1]}</div>
+        <div class="kpi-unit">${c[2]}</div>
+      </article>
+    `).join("");
+  }
 
   const units = d.porUnidad || [];
-  $("#unit-table").innerHTML = units.length ? units.map(x => `
-    <tr>
-      <td><strong>${esc(x.placa)}</strong></td>
-      <td>${fmt(x.viajes,0)}</td>
-      <td>${fmt(x.km)} km</td>
-      <td>${fmt(x.litros,2)} L</td>
-      <td>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</td>
-    </tr>
-  `).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
+  const unitTable = $("#unit-table");
+  if (unitTable) {
+    unitTable.innerHTML = units.length ? units.map(x => `
+      <tr>
+        <td><strong>${esc(x.placa)}</strong></td>
+        <td>${fmt(x.viajes,0)}</td>
+        <td>${fmt(x.km)} km</td>
+        <td>${fmt(x.litros,2)} L</td>
+        <td>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</td>
+      </tr>
+    `).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
+  }
 }
 
 function renderConsumos() {
-  $("#consumos-table").innerHTML = state.consumos.length ? state.consumos.map(x => `
+  const table = $("#consumos-table");
+  if (!table) return;
+  table.innerHTML = state.consumos.length ? state.consumos.map(x => `
     <tr>
       <td>${esc(x.Fecha)}</td>
       <td><strong>${esc(x.Placa)}</strong></td>
@@ -135,38 +147,10 @@ function renderConsumos() {
   `).join("") : emptyRow(9, "No hay recorridos para los filtros seleccionados.");
 }
 
-function editConsumo(id) {
-  const item = state.consumos.find(c => String(c.ID) === String(id));
-  if (!item) return;
-  $("#consumo-id").value = item.ID;
-  $("#consumo-fecha").value = item.Fecha;
-  $("#consumo-chofer").value = item.Chofer;
-  $("#consumo-placa").value = item.Placa;
-  $("#consumo-modelo").value = item.Modelo || "";
-  $("#consumo-ruta").value = item["Zona / Ruta"] || "";
-  $("#consumo-kmSalida").value = item["Km Salida"];
-  $("#consumo-kmLlegada").value = item["Km Llegada"];
-  $("#consumo-litrosIniciales").value = item["Litros Iniciales"];
-  $("#consumo-litrosCargados").value = item["Litros Cargados"];
-  $("#consumo-factor").value = item["Factor (L/Km)"] || 0;
-  $("#consumo-observaciones").value = item.Observaciones || "";
-  $("#consumo-form-title").textContent = "Editar recorrido";
-  updateConsumoPreview();
-  openForm("consumo-form-panel", "consumo-form");
-}
-
-async function confirmDeleteConsumo(id) {
-  if (confirm("¿Está seguro de eliminar este registro de consumo?")) {
-    try {
-      await apiPost("deleteConsumo", { id });
-      showToast("Registro de consumo eliminado.");
-      await Promise.all([loadConsumos(), loadDashboard()]);
-    } catch (err) { showToast(err.message, true); }
-  }
-}
-
 function renderCompras() {
-  $("#compras-table").innerHTML = state.compras.length ? state.compras.map(x => `
+  const table = $("#compras-table");
+  if (!table) return;
+  table.innerHTML = state.compras.length ? state.compras.map(x => `
     <tr>
       <td>${esc(x.Fecha)}</td>
       <td>${esc(x.Proveedor || "—")}</td>
@@ -185,34 +169,14 @@ function renderCompras() {
   `).join("") : emptyRow(8, "No hay compras para los filtros seleccionados.");
 }
 
-function editCompra(id) {
-  const item = state.compras.find(c => String(c.ID) === String(id));
-  if (!item) return;
-  $("#compra-id").value = item.ID;
-  $("#compra-fecha").value = item.Fecha;
-  $("#compra-proveedor").value = item.Proveedor || "";
-  $("#compra-litros").value = item["Litros Comprados"];
-  $("#compra-precioUsd").value = item["Precio USD/L"];
-  $("#compra-tasaBcv").value = item["Tasa BCV"];
-  $("#compra-observaciones").value = item.Observaciones || "";
-  $("#compra-form-title").textContent = "Editar compra";
-  updateCompraPreview();
-  openForm("compra-form-panel", "compra-form");
-}
-
-async function confirmDeleteCompra(id) {
-  if (confirm("¿Está seguro de eliminar esta compra?")) {
-    try {
-      await apiPost("deleteCompra", { id });
-      showToast("Compra eliminada correctamente.");
-      await Promise.all([loadCompras(), loadDashboard()]);
-    } catch (err) { showToast(err.message, true); }
-  }
-}
-
 function renderChoferes() {
-  $("#chofer-count").textContent = `${state.choferes.length} conductor(es) registrado(s).`;
-  $("#chofer-cards").innerHTML = state.choferes.length ? state.choferes.map(x => `
+  const countEl = $("#chofer-count");
+  if (countEl) countEl.textContent = `${state.choferes.length} conductor(es) registrado(s).`;
+  
+  const cardsEl = $("#chofer-cards");
+  if (!cardsEl) return;
+  
+  cardsEl.innerHTML = state.choferes.length ? state.choferes.map(x => `
     <article class="entity-card">
       <div class="entity-card-head">
         <div class="entity-avatar">${esc(initials(x.nombre))}</div>
@@ -226,40 +190,21 @@ function renderChoferes() {
         <span class="pill ${String(x.estatus).toLowerCase() !== "activo" ? "sand" : ""}">${esc(x.estatus)}</span>
       </div>
       <div class="entity-actions">
-        <button class="btn btn-outline btn-sm" onclick="editChofer('${esc(x.id)}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="confirmDeleteChofer('${esc(x.id)}', '${esc(x.nombre)}')">Eliminar</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="editChofer('${esc(x.id)}')">Editar</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChofer('${esc(x.id)}', '${esc(x.nombre)}')">Eliminar</button>
       </div>
     </article>
   `).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
 }
 
-function editChofer(id) {
-  const chofer = state.choferes.find(c => String(c.id) === String(id));
-  if (!chofer) return;
-  $("#chofer-id").value = chofer.id;
-  $("#chofer-nombre").value = chofer.nombre;
-  $("#chofer-cedula").value = chofer.cedula;
-  $("#chofer-direccion").value = chofer.direccion || "";
-  $("#chofer-estatus").value = chofer.estatus || "Activo";
-  $("#chofer-form-title").textContent = "Editar chofer";
-  openForm("chofer-form-panel", "chofer-form");
-}
-
-async function confirmDeleteChofer(id, nombre) {
-  if (confirm(`¿Está seguro de eliminar al chofer "${nombre}"?`)) {
-    try {
-      await apiPost("deleteChofer", { id });
-      showToast("Chofer eliminado correctamente.");
-      state.choferes = await apiGet("choferes");
-      populateSelects();
-      renderChoferes();
-    } catch (err) { showToast(err.message, true); }
-  }
-}
-
 function renderVehiculos() {
-  $("#vehiculo-count").textContent = `${state.vehiculos.length} unidad(es) registrada(s).`;
-  $("#vehiculo-cards").innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `
+  const countEl = $("#vehiculo-count");
+  if (countEl) countEl.textContent = `${state.vehiculos.length} unidad(es) registrada(s).`;
+  
+  const cardsEl = $("#vehiculo-cards");
+  if (!cardsEl) return;
+
+  cardsEl.innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `
     <article class="entity-card">
       <div class="entity-card-head">
         <div class="entity-avatar">▰</div>
@@ -274,28 +219,53 @@ function renderVehiculos() {
       </div>
       <p style="margin-top:10px">Factor habitual: ${fmt(x.factor,3)} L/km</p>
       <div class="entity-actions">
-        <button class="btn btn-outline btn-sm" onclick="editVehiculo('${esc(x.id)}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="confirmDeleteVehiculo('${esc(x.id)}', '${esc(x.placa)}')">Eliminar</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="editVehiculo('${esc(x.id)}')">Editar</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteVehiculo('${esc(x.id)}', '${esc(x.placa)}')">Eliminar</button>
       </div>
     </article>
   `).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
 }
 
-function editVehiculo(id) {
+/* FUNCIONES DE ACCIÓN EXPORTADAS AL ÁMBITO GLOBAL (WINDOW) */
+window.editChofer = function(id) {
+  const chofer = state.choferes.find(c => String(c.id) === String(id));
+  if (!chofer) return;
+  if ($("#chofer-id")) $("#chofer-id").value = chofer.id;
+  if ($("#chofer-nombre")) $("#chofer-nombre").value = chofer.nombre;
+  if ($("#chofer-cedula")) $("#chofer-cedula").value = chofer.cedula;
+  if ($("#chofer-direccion")) $("#chofer-direccion").value = chofer.direccion || "";
+  if ($("#chofer-estatus")) $("#chofer-estatus").value = chofer.estatus || "Activo";
+  if ($("#chofer-form-title")) $("#chofer-form-title").textContent = "Editar chofer";
+  openForm("chofer-form-panel", "chofer-form");
+};
+
+window.confirmDeleteChofer = async function(id, nombre) {
+  if (confirm(`¿Está seguro de eliminar al chofer "${nombre}"?`)) {
+    try {
+      await apiPost("deleteChofer", { id });
+      showToast("Chofer eliminado correctamente.");
+      state.choferes = await apiGet("choferes");
+      populateSelects();
+      renderChoferes();
+    } catch (err) { showToast(err.message, true); }
+  }
+};
+
+window.editVehiculo = function(id) {
   const item = state.vehiculos.find(v => String(v.id) === String(id));
   if (!item) return;
-  $("#vehiculo-id").value = item.id;
-  $("#vehiculo-marca").value = item.marca;
-  $("#vehiculo-modelo").value = item.modelo;
-  $("#vehiculo-año").value = item.año || "";
-  $("#vehiculo-placa").value = item.placa;
-  $("#vehiculo-estatus").value = item.estatus || "Propio";
-  $("#vehiculo-factor").value = item.factor || 0;
-  $("#vehiculo-form-title").textContent = "Editar vehículo";
+  if ($("#vehiculo-id")) $("#vehiculo-id").value = item.id;
+  if ($("#vehiculo-marca")) $("#vehiculo-marca").value = item.marca;
+  if ($("#vehiculo-modelo")) $("#vehiculo-modelo").value = item.modelo;
+  if ($("#vehiculo-año")) $("#vehiculo-año").value = item.año || "";
+  if ($("#vehiculo-placa")) $("#vehiculo-placa").value = item.placa;
+  if ($("#vehiculo-estatus")) $("#vehiculo-estatus").value = item.estatus || "Propio";
+  if ($("#vehiculo-factor")) $("#vehiculo-factor").value = item.factor || 0;
+  if ($("#vehiculo-form-title")) $("#vehiculo-form-title").textContent = "Editar vehículo";
   openForm("vehiculo-form-panel", "vehiculo-form");
-}
+};
 
-async function confirmDeleteVehiculo(id, placa) {
+window.confirmDeleteVehiculo = async function(id, placa) {
   if (confirm(`¿Está seguro de eliminar el vehículo con placa "${placa}"?`)) {
     try {
       await apiPost("deleteVehiculo", { id });
@@ -305,52 +275,117 @@ async function confirmDeleteVehiculo(id, placa) {
       renderVehiculos();
     } catch (err) { showToast(err.message, true); }
   }
-}
+};
+
+window.editConsumo = function(id) {
+  const item = state.consumos.find(c => String(c.ID) === String(id));
+  if (!item) return;
+  if ($("#consumo-id")) $("#consumo-id").value = item.ID;
+  if ($("#consumo-fecha")) $("#consumo-fecha").value = item.Fecha;
+  if ($("#consumo-chofer")) $("#consumo-chofer").value = item.Chofer;
+  if ($("#consumo-placa")) $("#consumo-placa").value = item.Placa;
+  if ($("#consumo-modelo")) $("#consumo-modelo").value = item.Modelo || "";
+  if ($("#consumo-ruta")) $("#consumo-ruta").value = item["Zona / Ruta"] || "";
+  if ($("#consumo-kmSalida")) $("#consumo-kmSalida").value = item["Km Salida"];
+  if ($("#consumo-kmLlegada")) $("#consumo-kmLlegada").value = item["Km Llegada"];
+  if ($("#consumo-litrosIniciales")) $("#consumo-litrosIniciales").value = item["Litros Iniciales"];
+  if ($("#consumo-litrosCargados")) $("#consumo-litrosCargados").value = item["Litros Cargados"];
+  if ($("#consumo-factor")) $("#consumo-factor").value = item["Factor (L/Km)"] || 0;
+  if ($("#consumo-observaciones")) $("#consumo-observaciones").value = item.Observaciones || "";
+  if ($("#consumo-form-title")) $("#consumo-form-title").textContent = "Editar recorrido";
+  updateConsumoPreview();
+  openForm("consumo-form-panel", "consumo-form");
+};
+
+window.confirmDeleteConsumo = async function(id) {
+  if (confirm("¿Está seguro de eliminar este registro de consumo?")) {
+    try {
+      await apiPost("deleteConsumo", { id });
+      showToast("Registro de consumo eliminado.");
+      await Promise.all([loadConsumos(), loadDashboard()]);
+    } catch (err) { showToast(err.message, true); }
+  }
+};
+
+window.editCompra = function(id) {
+  const item = state.compras.find(c => String(c.ID) === String(id));
+  if (!item) return;
+  if ($("#compra-id")) $("#compra-id").value = item.ID;
+  if ($("#compra-fecha")) $("#compra-fecha").value = item.Fecha;
+  if ($("#compra-proveedor")) $("#compra-proveedor").value = item.Proveedor || "";
+  if ($("#compra-litros")) $("#compra-litros").value = item["Litros Comprados"];
+  if ($("#compra-precioUsd")) $("#compra-precioUsd").value = item["Precio USD/L"];
+  if ($("#compra-tasaBcv")) $("#compra-tasaBcv").value = item["Tasa BCV"];
+  if ($("#compra-observaciones")) $("#compra-observaciones").value = item.Observaciones || "";
+  if ($("#compra-form-title")) $("#compra-form-title").textContent = "Editar compra";
+  updateCompraPreview();
+  openForm("compra-form-panel", "compra-form");
+};
+
+window.confirmDeleteCompra = async function(id) {
+  if (confirm("¿Está seguro de eliminar esta compra?")) {
+    try {
+      await apiPost("deleteCompra", { id });
+      showToast("Compra eliminada correctamente.");
+      await Promise.all([loadCompras(), loadDashboard()]);
+    } catch (err) { showToast(err.message, true); }
+  }
+};
 
 function populateSelects() {
   const driver = $("#consumo-chofer"), vehicle = $("#consumo-placa"), filter = $("#consumo-filter-placa");
-  driver.innerHTML = '<option value="">Seleccione un chofer</option>' + state.choferes.filter(x => String(x.estatus).toLowerCase() === "activo").map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} · ${esc(x.cedula)}</option>`).join("");
-  vehicle.innerHTML = '<option value="">Seleccione un vehículo</option>' + state.vehiculos.filter(x => !["inactivo"].includes(String(x.estatus).toLowerCase())).map(x => `<option value="${esc(x.placa)}">${esc(x.placa)} · ${esc(x.marca)} ${esc(x.modelo)}</option>`).join("");
-  const old = filter.value;
-  filter.innerHTML = '<option value="">Todas las placas</option>' + state.vehiculos.map(x => `<option value="${esc(x.placa)}">${esc(x.placa)}</option>`).join("");
-  filter.value = old;
+  if (driver) {
+    driver.innerHTML = '<option value="">Seleccione un chofer</option>' + state.choferes.filter(x => String(x.estatus).toLowerCase() === "activo").map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} · ${esc(x.cedula)}</option>`).join("");
+  }
+  if (vehicle) {
+    vehicle.innerHTML = '<option value="">Seleccione un vehículo</option>' + state.vehiculos.filter(x => !["inactivo"].includes(String(x.estatus).toLowerCase())).map(x => `<option value="${esc(x.placa)}">${esc(x.placa)} · ${esc(x.marca)} ${esc(x.modelo)}</option>`).join("");
+  }
+  if (filter) {
+    const old = filter.value;
+    filter.innerHTML = '<option value="">Todas las placas</option>' + state.vehiculos.map(x => `<option value="${esc(x.placa)}">${esc(x.placa)}</option>`).join("");
+    filter.value = old;
+  }
 }
 
 function bindNavigation() {
-  $$("#main-nav [data-view], .quick-action[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
-  $$("[data-close]").forEach(btn => btn.addEventListener("click", () => $("#" + btn.dataset.close).classList.add("hidden")));
-  $("#apply-dash-filter").addEventListener("click", () => withError(loadDashboard));
-  $("#filter-consumos").addEventListener("click", () => withError(loadConsumos));
-  $("#filter-compras").addEventListener("click", () => withError(loadCompras));
+  $$("#main-nav [data-view], .quick-action[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view))); $$
+("[data-close]").forEach(btn => btn.addEventListener("click", () => {
+    const target = $("#" + btn.dataset.close);
+    if (target) target.classList.add("hidden");
+  }));
   
-  $("#new-consumo-btn").addEventListener("click", () => {
-    $("#consumo-id").value = "";
-    $("#consumo-form-title").textContent = "Registrar recorrido";
+  $("#apply-dash-filter")?.addEventListener("click", () => withError(loadDashboard));
+  $("#filter-consumos")?.addEventListener("click", () => withError(loadConsumos));
+  $("#filter-compras")?.addEventListener("click", () => withError(loadCompras));
+  
+  $("#new-consumo-btn")?.addEventListener("click", () => {
+    if ($("#consumo-id")) $("#consumo-id").value = "";
+    if ($("#consumo-form-title")) $("#consumo-form-title").textContent = "Registrar recorrido";
     openForm("consumo-form-panel", "consumo-form");
   });
   
-  $("#new-chofer-btn").addEventListener("click", () => {
-    $("#chofer-id").value = "";
-    $("#chofer-form-title").textContent = "Datos del chofer";
+  $("#new-chofer-btn")?.addEventListener("click", () => {
+    if ($("#chofer-id")) $("#chofer-id").value = "";
+    if ($("#chofer-form-title")) $("#chofer-form-title").textContent = "Datos del chofer";
     openForm("chofer-form-panel", "chofer-form");
   });
 
-  $("#new-vehiculo-btn").addEventListener("click", () => {
-    $("#vehiculo-id").value = "";
-    $("#vehiculo-form-title").textContent = "Datos del vehículo";
+  $("#new-vehiculo-btn")?.addEventListener("click", () => {
+    if ($("#vehiculo-id")) $("#vehiculo-id").value = "";
+    if ($("#vehiculo-form-title")) $("#vehiculo-form-title").textContent = "Datos del vehículo";
     openForm("vehiculo-form-panel", "vehiculo-form");
   });
 
-  $("#new-compra-btn").addEventListener("click", () => {
-    $("#compra-id").value = "";
-    $("#compra-form-title").textContent = "Registrar compra";
+  $("#new-compra-btn")?.addEventListener("click", () => {
+    if ($("#compra-id")) $("#compra-id").value = "";
+    if ($("#compra-form-title")) $("#compra-form-title").textContent = "Registrar compra";
     openForm("compra-form-panel", "compra-form");
   });
 
-  $("#consumo-placa").addEventListener("change", () => {
+  $("#consumo-placa")?.addEventListener("change", () => {
     const v = state.vehiculos.find(x => x.placa === $("#consumo-placa").value);
-    $("#consumo-modelo").value = v ? `${v.marca} ${v.modelo}` : "";
-    if (!$("#consumo-id").value) {
+    if ($("#consumo-modelo")) $("#consumo-modelo").value = v ? `${v.marca} ${v.modelo}` : "";
+    if (!$("#consumo-id")?.value && $("#consumo-factor")) {
       $("#consumo-factor").value = v ? (v.factor || 0) : 0;
     }
     updateConsumoPreview();
@@ -360,51 +395,43 @@ function bindNavigation() {
     const el = $(`#consumo-form [name="${n}"]`);
     if (el) el.addEventListener("input", updateConsumoPreview);
   });
+  
   ["litros","precioUsd","tasaBcv"].forEach(n => {
-    const el = $(`#compra-form [name="${n}"]`);
-    if (el) el.addEventListener("input", updateCompraPreview);
-  });
-}
-
-function showView(name) {
-  $$(".view").forEach(v => v.classList.add("hidden"));
-  $("#view-" + name).classList.remove("hidden");
-  $$("#main-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+    const el = $(`#compra-form [name="${n}"]`); if (el) el.addEventListener("input", updateCompraPreview); }); }  function showView(name) { $$(".view").forEach(v => v.classList.add("hidden"));
+  const targetView = $("#view-" + name); if (targetView) targetView.classList.remove("hidden"); $$("#main-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   const titles = { dashboard: "Dashboard de gestión", consumos: "Control de consumos", choferes: "Registro de choferes", vehiculos: "Flota de camiones", compras: "Compras de gasoil" };
-  $("#page-title").textContent = titles[name] || "Control de flota";
+  const pageTitle = $("#page-title");
+  if (pageTitle) pageTitle.textContent = titles[name] || "Control de flota";
 }
 
 function openForm(panelId, formId) {
-  $("#" + panelId).classList.remove("hidden");
+  const panel = $("#" + panelId);
+  if (panel) panel.classList.remove("hidden");
   const form = $("#" + formId);
   if (form && form.elements.fecha && !form.elements.fecha.value) {
     form.elements.fecha.value = today();
   }
-  $("#" + panelId).scrollIntoView({ behavior: "smooth", block: "start" });
+  if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function bindForms() {
-  $("#consumo-form").addEventListener("submit", async e => {
+  $("#consumo-form")?.addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
     const f = Object.fromEntries(new FormData(form).entries());
     try {
       const result = await apiPost("saveConsumo", f);
       showToast(f.id ? "Recorrido actualizado." : `Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado: ${fmt(result.litrosConsumidos,2)} L.`);
-      
       form?.reset();
-      $("#consumo-id").value = "";
-      const factorInput = $("#consumo-factor");
-      if (factorInput) factorInput.value = 0;
-      const modeloInput = $("#consumo-modelo");
-      if (modeloInput) modeloInput.value = "";
-      
-      $("#consumo-form-panel").classList.add("hidden"); 
+      if ($("#consumo-id")) $("#consumo-id").value = "";
+      if ($("#consumo-factor")) $("#consumo-factor").value = 0;
+      if ($("#consumo-modelo")) $("#consumo-modelo").value = "";
+      $("#consumo-form-panel")?.classList.add("hidden"); 
       await Promise.all([loadDashboard(), loadConsumos()]);
     } catch (err) { showToast(err.message, true); }
   });
 
-  $("#chofer-form").addEventListener("submit", async e => {
+  $("#chofer-form")?.addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
     const f = Object.fromEntries(new FormData(form).entries());
@@ -412,13 +439,13 @@ function bindForms() {
       await apiPost("saveChofer", f);
       showToast(f.id ? "Chofer actualizado correctamente." : "Chofer guardado correctamente."); 
       form?.reset();
-      $("#chofer-id").value = "";
-      $("#chofer-form-panel").classList.add("hidden");
+      if ($("#chofer-id")) $("#chofer-id").value = "";
+      $("#chofer-form-panel")?.classList.add("hidden");
       state.choferes = await apiGet("choferes"); populateSelects(); renderChoferes();
     } catch (err) { showToast(err.message, true); }
   });
 
-  $("#vehiculo-form").addEventListener("submit", async e => {
+  $("#vehiculo-form")?.addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
     const f = Object.fromEntries(new FormData(form).entries());
@@ -426,13 +453,13 @@ function bindForms() {
       await apiPost("saveVehiculo", f);
       showToast(f.id ? "Vehículo actualizado correctamente." : "Vehículo registrado correctamente."); 
       form?.reset();
-      $("#vehiculo-id").value = "";
-      $("#vehiculo-form-panel").classList.add("hidden");
+      if ($("#vehiculo-id")) $("#vehiculo-id").value = "";
+      $("#vehiculo-form-panel")?.classList.add("hidden");
       state.vehiculos = await apiGet("vehiculos"); populateSelects(); renderVehiculos();
     } catch (err) { showToast(err.message, true); }
   });
 
-  $("#compra-form").addEventListener("submit", async e => {
+  $("#compra-form")?.addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
     const f = Object.fromEntries(new FormData(form).entries());
@@ -440,8 +467,8 @@ function bindForms() {
       const result = await apiPost("saveCompra", f);
       showToast(f.id ? "Compra actualizada correctamente." : `Compra guardada: ${money(result.importeUSD)} / ${money(result.importeBs,"VES")}.`);
       form?.reset();
-      $("#compra-id").value = "";
-      $("#compra-form-panel").classList.add("hidden");
+      if ($("#compra-id")) $("#compra-id").value = "";
+      $("#compra-form-panel")?.classList.add("hidden");
       await Promise.all([loadCompras(), loadDashboard()]);
     } catch (err) { showToast(err.message, true); }
   });
@@ -450,19 +477,25 @@ function bindForms() {
 function updateConsumoPreview() {
   const f = $("#consumo-form");
   if (!f) return;
-  const km = Math.max(0, Number(f.elements.kmLlegada.value) - Number(f.elements.kmSalida.value));
-  const total = Number(f.elements.litrosIniciales.value || 0) + Number(f.elements.litrosCargados.value || 0);
-  const factor = Number(f.elements.factor.value || 0);
+  const km = Math.max(0, Number(f.elements.kmLlegada?.value || 0) - Number(f.elements.kmSalida?.value || 0));
+  const total = Number(f.elements.litrosIniciales?.value || 0) + Number(f.elements.litrosCargados?.value || 0);
+  const factor = Number(f.elements.factor?.value || 0);
   const used = factor > 0 ? Math.min(total, km * factor) : 0;
-  $("#consumo-preview").textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculado: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
+  const preview = $("#consumo-preview");
+  if (preview) {
+    preview.textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculado: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
+  }
 }
 
 function updateCompraPreview() {
   const f = $("#compra-form");
   if (!f) return;
-  const usd = Number(f.elements.litros.value || 0) * Number(f.elements.precioUsd.value || 0);
-  const bs = usd * Number(f.elements.tasaBcv.value || 0);
-  $("#compra-preview").textContent = `Importe estimado: ${money(usd)} · Equivalente: ${money(bs,"VES")}.`;
+  const usd = Number(f.elements.litros?.value || 0) * Number(f.elements.precioUsd?.value || 0);
+  const bs = usd * Number(f.elements.tasaBcv?.value || 0);
+  const preview = $("#compra-preview");
+  if (preview) {
+    preview.textContent = `Importe estimado: ${money(usd)} · Equivalente: ${money(bs,"VES")}.`;
+  }
 }
 
 function emptyRow(cols, message) { return `<tr><td class="empty-cell" colspan="${cols}">${esc(message)}</td></tr>`; }
