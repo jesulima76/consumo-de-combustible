@@ -8,7 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen bg-stone-50 text-slate-800">
+<body class="min-h-screen">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="app-shell">
     <aside class="sidebar">
@@ -45,9 +45,11 @@
             <div class="table-wrap"><table><thead><tr><th>Placa</th><th>Viajes</th><th>Km recorridos</th><th>Litros consumidos</th><th>Rendimiento</th></tr></thead><tbody id="unit-table"></tbody></table></div>
           </section>
           <section class="panel"><div class="panel-heading"><div><h3>Accesos rápidos</h3><p>Registra la actividad de la flota.</p></div></div>
-            <div class="quick-actions"><button class="quick-action" data-view="consumos"><span>＋</span><div><b>Registrar consumo</b><small>Nuevo recorrido y combustible</small></div><i>→</i></button>
-            <button class="quick-action" data-view="compras"><span>＋</span><div><b>Registrar compra</b><small>Entrada de combustible</small></div><i>→</i></button>
-            <button class="quick-action" data-view="vehiculos"><span>＋</span><div><b>Agregar vehículo</b><small>Actualizar flota</small></div><i>→</i></button></div>
+            <div class="quick-actions">
+              <button class="quick-action" data-view="consumos"><span>＋</span><div><b>Registrar consumo</b><small>Nuevo recorrido y combustible</small></div><i>→</i></button>
+              <button class="quick-action" data-view="compras"><span>＋</span><div><b>Registrar compra</b><small>Entrada de combustible</small></div><i>→</i></button>
+              <button class="quick-action" data-view="vehiculos"><span>＋</span><div><b>Agregar vehículo</b><small>Actualizar flota</small></div><i>→</i></button>
+            </div>
           </section>
         </div>
       </section>
