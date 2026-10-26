@@ -34,6 +34,7 @@ async function apiGet(action, params = {}) {
   if (!result.ok) throw new Error(result.error || "Error consultando la API.");
   return result.data;
 }
+
 async function apiPost(action, data) {
   // text/plain evita el preflight CORS que suele dar problemas con Apps Script.
   const response = await fetch(API_URL, {
@@ -45,6 +46,7 @@ async function apiPost(action, data) {
   if (!result.ok) throw new Error(result.error || "No se pudo guardar.");
   return result.data;
 }
+
 async function loadAll() {
   setLoading(true);
   try {
@@ -57,11 +59,14 @@ async function loadAll() {
     showToast(err.message + " Verifique la URL y los permisos del despliegue.", true);
   } finally { setLoading(false); }
 }
+
 function setLoading(on) { $("#dashboard-loading").classList.toggle("hide", !on); }
+
 async function loadDashboard() {
   const data = await apiGet("dashboard", { desde: $("#dash-from").value, hasta: $("#dash-to").value });
   state.dashboard = data; renderDashboard(data);
 }
+
 async function loadConsumos() {
   state.consumos = await apiGet("consumos", {
     desde: $("#consumo-filter-from").value, hasta: $("#consumo-filter-to").value,
@@ -69,10 +74,12 @@ async function loadConsumos() {
   });
   renderConsumos();
 }
+
 async function loadCompras() {
   state.compras = await apiGet("compras", { desde: $("#compras-filter-from").value, hasta: $("#compras-filter-to").value });
   renderCompras();
 }
+
 function renderDashboard(d) {
   const cards = [
     ["Kilómetros recorridos", fmt(d.kilometros), "km", "↗"],
@@ -88,20 +95,25 @@ function renderDashboard(d) {
   const units = d.porUnidad || [];
   $("#unit-table").innerHTML = units.length ? units.map(x => `<tr><td><strong>${esc(x.placa)}</strong></td><td>${fmt(x.viajes,0)}</td><td>${fmt(x.km)} km</td><td>${fmt(x.litros,2)} L</td><td>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</td></tr>`).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
 }
+
 function renderConsumos() {
   $("#consumos-table").innerHTML = state.consumos.length ? state.consumos.map(x => `<tr><td>${esc(x.Fecha)}</td><td><strong>${esc(x.Placa)}</strong></td><td>${esc(x.Chofer)}</td><td>${esc(x["Zona / Ruta"] || "—")}</td><td>${fmt(x["Km Recorridos"])} km</td><td>${fmt(x["Litros Cargados"],2)} L</td><td>${fmt(x["Litros Consumidos"],2)} L</td><td>${Number(x["Rendimiento (Km/L)"]) > 0 ? fmt(x["Rendimiento (Km/L)"],2) : "—"}</td></tr>`).join("") : emptyRow(8, "No hay recorridos para los filtros seleccionados.");
 }
+
 function renderCompras() {
   $("#compras-table").innerHTML = state.compras.length ? state.compras.map(x => `<tr><td>${esc(x.Fecha)}</td><td>${esc(x.Proveedor || "—")}</td><td>${fmt(x["Litros Comprados"],2)} L</td><td>${money(x["Precio USD/L"])}</td><td>${fmt(x["Tasa BCV"],4)}</td><td>${money(x["Importe USD"])}</td><td>${money(x["Importe Bs"],"VES")}</td></tr>`).join("") : emptyRow(7, "No hay compras para los filtros seleccionados.");
 }
+
 function renderChoferes() {
   $("#chofer-count").textContent = `${state.choferes.length} conductor(es) registrado(s).`;
   $("#chofer-cards").innerHTML = state.choferes.length ? state.choferes.map(x => `<article class="entity-card"><div class="entity-card-head"><div class="entity-avatar">${esc(initials(x.nombre))}</div><div><h4>${esc(x.nombre)}</h4><p>C.I. ${esc(x.cedula)}</p></div></div><div class="entity-meta"><span>${esc(x.direccion || "Dirección no registrada")}</span><span class="pill ${String(x.estatus).toLowerCase() !== "activo" ? "sand" : ""}">${esc(x.estatus)}</span></div></article>`).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
 }
+
 function renderVehiculos() {
   $("#vehiculo-count").textContent = `${state.vehiculos.length} unidad(es) registrada(s).`;
   $("#vehiculo-cards").innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `<article class="entity-card"><div class="entity-card-head"><div class="entity-avatar">▰</div><div><h4>${esc(x.placa)}</h4><p>${esc(x.marca)} ${esc(x.modelo)}</p></div></div><div class="entity-meta"><span>${esc(x.año || "Año no indicado")}</span><span class="pill ${String(x.estatus).toLowerCase() === "afiliado" ? "sand" : ""}">${esc(x.estatus)}</span></div><p style="margin-top:10px">Factor habitual: ${fmt(x.factor,3)} L/km</p></article>`).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
 }
+
 function populateSelects() {
   const driver = $("#consumo-chofer"), vehicle = $("#consumo-placa"), filter = $("#consumo-filter-placa");
   driver.innerHTML = '<option value="">Seleccione un chofer</option>' + state.choferes.filter(x => String(x.estatus).toLowerCase() === "activo").map(x => `<option value="${esc(x.nombre)}">${esc(x.nombre)} · ${esc(x.cedula)}</option>`).join("");
@@ -110,6 +122,7 @@ function populateSelects() {
   filter.innerHTML = '<option value="">Todas las placas</option>' + state.vehiculos.map(x => `<option value="${esc(x.placa)}">${esc(x.placa)}</option>`).join("");
   filter.value = old;
 }
+
 function bindNavigation() {
   $$("#main-nav [data-view], .quick-action[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
   $$("[data-close]").forEach(btn => btn.addEventListener("click", () => $("#" + btn.dataset.close).classList.add("hidden")));
@@ -129,6 +142,7 @@ function bindNavigation() {
   ["kmSalida","kmLlegada","litrosIniciales","litrosCargados","factor"].forEach(n => $(`#consumo-form [name="${n}"]`).addEventListener("input", updateConsumoPreview));
   ["litros","precioUsd","tasaBcv"].forEach(n => $(`#compra-form [name="${n}"]`).addEventListener("input", updateCompraPreview));
 }
+
 function showView(name) {
   $$(".view").forEach(v => v.classList.add("hidden"));
   $("#view-" + name).classList.remove("hidden");
@@ -136,67 +150,97 @@ function showView(name) {
   const titles = { dashboard: "Dashboard de gestión", consumos: "Control de consumos", choferes: "Registro de choferes", vehiculos: "Flota de camiones", compras: "Compras de gasoil" };
   $("#page-title").textContent = titles[name] || "Control de flota";
 }
+
 function openForm(panelId, formId) {
   $("#" + panelId).classList.remove("hidden");
   const form = $("#" + formId);
-  if (form.elements.fecha) form.elements.fecha.value = today();
+  if (form && form.elements.fecha) form.elements.fecha.value = today();
   $("#" + panelId).scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
 function bindForms() {
   $("#consumo-form").addEventListener("submit", async e => {
     e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const form = e.currentTarget;
+    const f = Object.fromEntries(new FormData(form).entries());
     try {
       const result = await apiPost("saveConsumo", f);
       showToast(`Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado: ${fmt(result.litrosConsumidos,2)} L.`);
-      e.currentTarget.reset(); $("#consumo-factor").value = 0; $("#consumo-modelo").value = "";
-      $("#consumo-form-panel").classList.add("hidden"); await Promise.all([loadDashboard(),loadConsumos()]);
+      
+      form?.reset();
+      const factorInput = $("#consumo-factor");
+      if (factorInput) factorInput.value = 0;
+      const modeloInput = $("#consumo-modelo");
+      if (modeloInput) modeloInput.value = "";
+      
+      $("#consumo-form-panel").classList.add("hidden"); 
+      await Promise.all([loadDashboard(), loadConsumos()]);
     } catch (err) { showToast(err.message, true); }
   });
+
   $("#chofer-form").addEventListener("submit", async e => {
     e.preventDefault();
+    const form = e.currentTarget;
     try {
-      await apiPost("saveChofer", Object.fromEntries(new FormData(e.currentTarget).entries()));
-      showToast("Chofer registrado correctamente."); e.currentTarget.reset(); $("#chofer-form-panel").classList.add("hidden");
+      await apiPost("saveChofer", Object.fromEntries(new FormData(form).entries()));
+      showToast("Chofer registrado correctamente."); 
+      form?.reset(); 
+      $("#chofer-form-panel").classList.add("hidden");
       state.choferes = await apiGet("choferes"); populateSelects(); renderChoferes();
     } catch (err) { showToast(err.message, true); }
   });
+
   $("#vehiculo-form").addEventListener("submit", async e => {
     e.preventDefault();
+    const form = e.currentTarget;
     try {
-      await apiPost("saveVehiculo", Object.fromEntries(new FormData(e.currentTarget).entries()));
-      showToast("Vehículo registrado correctamente."); e.currentTarget.reset(); $("#vehiculo-form-panel").classList.add("hidden");
+      await apiPost("saveVehiculo", Object.fromEntries(new FormData(form).entries()));
+      showToast("Vehículo registrado correctamente."); 
+      form?.reset(); 
+      $("#vehiculo-form-panel").classList.add("hidden");
       state.vehiculos = await apiGet("vehiculos"); populateSelects(); renderVehiculos();
     } catch (err) { showToast(err.message, true); }
   });
+
   $("#compra-form").addEventListener("submit", async e => {
     e.preventDefault();
+    const form = e.currentTarget;
     try {
-      const result = await apiPost("saveCompra", Object.fromEntries(new FormData(e.currentTarget).entries()));
+      const result = await apiPost("saveCompra", Object.fromEntries(new FormData(form).entries()));
       showToast(`Compra guardada: ${money(result.importeUSD)} / ${money(result.importeBs,"VES")}.`);
-      e.currentTarget.reset(); $("#compra-form-panel").classList.add("hidden");
-      await Promise.all([loadCompras(),loadDashboard()]);
+      form?.reset(); 
+      $("#compra-form-panel").classList.add("hidden");
+      await Promise.all([loadCompras(), loadDashboard()]);
     } catch (err) { showToast(err.message, true); }
   });
 }
+
 function updateConsumoPreview() {
   const f = $("#consumo-form");
+  if (!f) return;
   const km = Math.max(0, Number(f.elements.kmLlegada.value) - Number(f.elements.kmSalida.value));
   const total = Number(f.elements.litrosIniciales.value || 0) + Number(f.elements.litrosCargados.value || 0);
   const factor = Number(f.elements.factor.value || 0);
   const used = factor > 0 ? Math.min(total, km * factor) : 0;
-  $("#consumo-preview").textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculado: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
+  $("#consumo-preview").textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculated: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
 }
+
 function updateCompraPreview() {
   const f = $("#compra-form");
+  if (!f) return;
   const usd = Number(f.elements.litros.value || 0) * Number(f.elements.precioUsd.value || 0);
   const bs = usd * Number(f.elements.tasaBcv.value || 0);
   $("#compra-preview").textContent = `Importe estimado: ${money(usd)} · Equivalente: ${money(bs,"VES")}.`;
 }
+
 function emptyRow(cols, message) { return `<tr><td class="empty-cell" colspan="${cols}">${esc(message)}</td></tr>`; }
 function initials(name) { return String(name || "?").split(/\s+/).slice(0,2).map(x => x[0] || "").join("").toUpperCase(); }
+
 function showToast(message, error = false) {
-  const toast = $("#toast"); toast.textContent = message; toast.classList.toggle("error", error); toast.classList.add("show");
+  const toast = $("#toast"); 
+  if (!toast) return;
+  toast.textContent = message; toast.classList.toggle("error", error); toast.classList.add("show");
   window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 4500);
 }
+
 async function withError(fn) { try { await fn(); } catch (err) { showToast(err.message, true); } }
