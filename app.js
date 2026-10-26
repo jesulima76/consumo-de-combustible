@@ -36,7 +36,6 @@ async function apiGet(action, params = {}) {
 }
 
 async function apiPost(action, data) {
-  // text/plain evita el preflight CORS que suele dar problemas con Apps Script.
   const response = await fetch(API_URL, {
     method: "POST", redirect: "follow",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -51,8 +50,8 @@ async function loadAll() {
   setLoading(true);
   try {
     const init = await apiGet("init");
-    state.choferes = init.choferes || [];
-    state.vehiculos = init.vehiculos || [];
+    state.choferes = await apiGet("choferes");
+    state.vehiculos = await apiGet("vehiculos");
     await Promise.all([loadDashboard(), loadConsumos(), loadCompras()]);
     renderChoferes(); renderVehiculos(); populateSelects();
   } catch (err) {
@@ -97,21 +96,196 @@ function renderDashboard(d) {
 }
 
 function renderConsumos() {
-  $("#consumos-table").innerHTML = state.consumos.length ? state.consumos.map(x => `<tr><td>${esc(x.Fecha)}</td><td><strong>${esc(x.Placa)}</strong></td><td>${esc(x.Chofer)}</td><td>${esc(x["Zona / Ruta"] || "—")}</td><td>${fmt(x["Km Recorridos"])} km</td><td>${fmt(x["Litros Cargados"],2)} L</td><td>${fmt(x["Litros Consumidos"],2)} L</td><td>${Number(x["Rendimiento (Km/L)"]) > 0 ? fmt(x["Rendimiento (Km/L)"],2) : "—"}</td></tr>`).join("") : emptyRow(8, "No hay recorridos para los filtros seleccionados.");
+  $("#consumos-table").innerHTML = state.consumos.length ? state.consumos.map(x => `
+    <tr>
+      <td>${esc(x.Fecha)}</td>
+      <td><strong>${esc(x.Placa)}</strong></td>
+      <td>${esc(x.Chofer)}</td>
+      <td>${esc(x["Zona / Ruta"] || "—")}</td>
+      <td>${fmt(x["Km Recorridos"])} km</td>
+      <td>${fmt(x["Litros Cargados"],2)} L</td>
+      <td>${fmt(x["Litros Consumidos"],2)} L</td>
+      <td>${Number(x["Rendimiento (Km/L)"]) > 0 ? fmt(x["Rendimiento (Km/L)"],2) : "—"}</td>
+      <td class="text-right">
+        <div class="action-group">
+          <button class="btn btn-outline btn-sm" onclick="editConsumo('${esc(x.ID)}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteConsumo('${esc(x.ID)}')">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") : emptyRow(9, "No hay recorridos para los filtros seleccionados.");
+}
+
+function editConsumo(id) {
+  const item = state.consumos.find(c => String(c.ID) === String(id));
+  if (!item) return;
+  $("#consumo-id").value = item.ID;
+  $("#consumo-fecha").value = item.Fecha;
+  $("#consumo-chofer").value = item.Chofer;
+  $("#consumo-placa").value = item.Placa;
+  $("#consumo-modelo").value = item.Modelo || "";
+  $("#consumo-ruta").value = item["Zona / Ruta"] || "";
+  $("#consumo-kmSalida").value = item["Km Salida"];
+  $("#consumo-kmLlegada").value = item["Km Llegada"];
+  $("#consumo-litrosIniciales").value = item["Litros Iniciales"];
+  $("#consumo-litrosCargados").value = item["Litros Cargados"];
+  $("#consumo-factor").value = item["Factor (L/Km)"] || 0;
+  $("#consumo-observaciones").value = item.Observaciones || "";
+  $("#consumo-form-title").textContent = "Editar recorrido";
+  updateConsumoPreview();
+  openForm("consumo-form-panel", "consumo-form");
+}
+
+async function confirmDeleteConsumo(id) {
+  if (confirm("¿Está seguro de eliminar este registro de consumo?")) {
+    try {
+      await apiPost("deleteConsumo", { id });
+      showToast("Registro de consumo eliminado.");
+      await Promise.all([loadConsumos(), loadDashboard()]);
+    } catch (err) { showToast(err.message, true); }
+  }
 }
 
 function renderCompras() {
-  $("#compras-table").innerHTML = state.compras.length ? state.compras.map(x => `<tr><td>${esc(x.Fecha)}</td><td>${esc(x.Proveedor || "—")}</td><td>${fmt(x["Litros Comprados"],2)} L</td><td>${money(x["Precio USD/L"])}</td><td>${fmt(x["Tasa BCV"],4)}</td><td>${money(x["Importe USD"])}</td><td>${money(x["Importe Bs"],"VES")}</td></tr>`).join("") : emptyRow(7, "No hay compras para los filtros seleccionados.");
+  $("#compras-table").innerHTML = state.compras.length ? state.compras.map(x => `
+    <tr>
+      <td>${esc(x.Fecha)}</td>
+      <td>${esc(x.Proveedor || "—")}</td>
+      <td>${fmt(x["Litros Comprados"],2)} L</td>
+      <td>${money(x["Precio USD/L"])}</td>
+      <td>${fmt(x["Tasa BCV"],4)}</td>
+      <td>${money(x["Importe USD"])}</td>
+      <td>${money(x["Importe Bs"],"VES")}</td>
+      <td class="text-right">
+        <div class="action-group">
+          <button class="btn btn-outline btn-sm" onclick="editCompra('${esc(x.ID)}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteCompra('${esc(x.ID)}')">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") : emptyRow(8, "No hay compras para los filtros seleccionados.");
+}
+
+function editCompra(id) {
+  const item = state.compras.find(c => String(c.ID) === String(id));
+  if (!item) return;
+  $("#compra-id").value = item.ID;
+  $("#compra-fecha").value = item.Fecha;
+  $("#compra-proveedor").value = item.Proveedor || "";
+  $("#compra-litros").value = item["Litros Comprados"];
+  $("#compra-precioUsd").value = item["Precio USD/L"];
+  $("#compra-tasaBcv").value = item["Tasa BCV"];
+  $("#compra-observaciones").value = item.Observaciones || "";
+  $("#compra-form-title").textContent = "Editar compra";
+  updateCompraPreview();
+  openForm("compra-form-panel", "compra-form");
+}
+
+async function confirmDeleteCompra(id) {
+  if (confirm("¿Está seguro de eliminar esta compra?")) {
+    try {
+      await apiPost("deleteCompra", { id });
+      showToast("Compra eliminada correctamente.");
+      await Promise.all([loadCompras(), loadDashboard()]);
+    } catch (err) { showToast(err.message, true); }
+  }
 }
 
 function renderChoferes() {
   $("#chofer-count").textContent = `${state.choferes.length} conductor(es) registrado(s).`;
-  $("#chofer-cards").innerHTML = state.choferes.length ? state.choferes.map(x => `<article class="entity-card"><div class="entity-card-head"><div class="entity-avatar">${esc(initials(x.nombre))}</div><div><h4>${esc(x.nombre)}</h4><p>C.I. ${esc(x.cedula)}</p></div></div><div class="entity-meta"><span>${esc(x.direccion || "Dirección no registrada")}</span><span class="pill ${String(x.estatus).toLowerCase() !== "activo" ? "sand" : ""}">${esc(x.estatus)}</span></div></article>`).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
+  $("#chofer-cards").innerHTML = state.choferes.length ? state.choferes.map(x => `
+    <article class="entity-card">
+      <div class="entity-card-head">
+        <div class="entity-avatar">${esc(initials(x.nombre))}</div>
+        <div>
+          <h4>${esc(x.nombre)}</h4>
+          <p>C.I. ${esc(x.cedula)}</p>
+        </div>
+      </div>
+      <div class="entity-meta">
+        <span>${esc(x.direccion || "Dirección no registrada")}</span>
+        <span class="pill ${String(x.estatus).toLowerCase() !== "activo" ? "sand" : ""}">${esc(x.estatus)}</span>
+      </div>
+      <div class="entity-actions">
+        <button class="btn btn-outline btn-sm" onclick="editChofer('${esc(x.id)}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteChofer('${esc(x.id)}', '${esc(x.nombre)}')">Eliminar</button>
+      </div>
+    </article>
+  `).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
+}
+
+function editChofer(id) {
+  const chofer = state.choferes.find(c => String(c.id) === String(id));
+  if (!chofer) return;
+  $("#chofer-id").value = chofer.id;
+  $("#chofer-nombre").value = chofer.nombre;
+  $("#chofer-cedula").value = chofer.cedula;
+  $("#chofer-direccion").value = chofer.direccion || "";
+  $("#chofer-estatus").value = chofer.estatus || "Activo";
+  $("#chofer-form-title").textContent = "Editar chofer";
+  openForm("chofer-form-panel", "chofer-form");
+}
+
+async function confirmDeleteChofer(id, nombre) {
+  if (confirm(`¿Está seguro de eliminar al chofer "${nombre}"?`)) {
+    try {
+      await apiPost("deleteChofer", { id });
+      showToast("Chofer eliminado correctamente.");
+      state.choferes = await apiGet("choferes");
+      populateSelects();
+      renderChoferes();
+    } catch (err) { showToast(err.message, true); }
+  }
 }
 
 function renderVehiculos() {
   $("#vehiculo-count").textContent = `${state.vehiculos.length} unidad(es) registrada(s).`;
-  $("#vehiculo-cards").innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `<article class="entity-card"><div class="entity-card-head"><div class="entity-avatar">▰</div><div><h4>${esc(x.placa)}</h4><p>${esc(x.marca)} ${esc(x.modelo)}</p></div></div><div class="entity-meta"><span>${esc(x.año || "Año no indicado")}</span><span class="pill ${String(x.estatus).toLowerCase() === "afiliado" ? "sand" : ""}">${esc(x.estatus)}</span></div><p style="margin-top:10px">Factor habitual: ${fmt(x.factor,3)} L/km</p></article>`).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
+  $("#vehiculo-cards").innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `
+    <article class="entity-card">
+      <div class="entity-card-head">
+        <div class="entity-avatar">▰</div>
+        <div>
+          <h4>${esc(x.placa)}</h4>
+          <p>${esc(x.marca)} ${esc(x.modelo)}</p>
+        </div>
+      </div>
+      <div class="entity-meta">
+        <span>${esc(x.año || "Año no indicado")}</span>
+        <span class="pill ${String(x.estatus).toLowerCase() === "afiliado" ? "sand" : ""}">${esc(x.estatus)}</span>
+      </div>
+      <p style="margin-top:10px">Factor habitual: ${fmt(x.factor,3)} L/km</p>
+      <div class="entity-actions">
+        <button class="btn btn-outline btn-sm" onclick="editVehiculo('${esc(x.id)}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteVehiculo('${esc(x.id)}', '${esc(x.placa)}')">Eliminar</button>
+      </div>
+    </article>
+  `).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
+}
+
+function editVehiculo(id) {
+  const item = state.vehiculos.find(v => String(v.id) === String(id));
+  if (!item) return;
+  $("#vehiculo-id").value = item.id;
+  $("#vehiculo-marca").value = item.marca;
+  $("#vehiculo-modelo").value = item.modelo;
+  $("#vehiculo-año").value = item.año || "";
+  $("#vehiculo-placa").value = item.placa;
+  $("#vehiculo-estatus").value = item.estatus || "Propio";
+  $("#vehiculo-factor").value = item.factor || 0;
+  $("#vehiculo-form-title").textContent = "Editar vehículo";
+  openForm("vehiculo-form-panel", "vehiculo-form");
+}
+
+async function confirmDeleteVehiculo(id, placa) {
+  if (confirm(`¿Está seguro de eliminar el vehículo con placa "${placa}"?`)) {
+    try {
+      await apiPost("deleteVehiculo", { id });
+      showToast("Vehículo eliminado correctamente.");
+      state.vehiculos = await apiGet("vehiculos");
+      populateSelects();
+      renderVehiculos();
+    } catch (err) { showToast(err.message, true); }
+  }
 }
 
 function populateSelects() {
@@ -129,18 +303,48 @@ function bindNavigation() {
   $("#apply-dash-filter").addEventListener("click", () => withError(loadDashboard));
   $("#filter-consumos").addEventListener("click", () => withError(loadConsumos));
   $("#filter-compras").addEventListener("click", () => withError(loadCompras));
-  $("#new-consumo-btn").addEventListener("click", () => openForm("consumo-form-panel", "consumo-form"));
-  $("#new-chofer-btn").addEventListener("click", () => openForm("chofer-form-panel", "chofer-form"));
-  $("#new-vehiculo-btn").addEventListener("click", () => openForm("vehiculo-form-panel", "vehiculo-form"));
-  $("#new-compra-btn").addEventListener("click", () => openForm("compra-form-panel", "compra-form"));
+  
+  $("#new-consumo-btn").addEventListener("click", () => {
+    $("#consumo-id").value = "";
+    $("#consumo-form-title").textContent = "Registrar recorrido";
+    openForm("consumo-form-panel", "consumo-form");
+  });
+  
+  $("#new-chofer-btn").addEventListener("click", () => {
+    $("#chofer-id").value = "";
+    $("#chofer-form-title").textContent = "Datos del chofer";
+    openForm("chofer-form-panel", "chofer-form");
+  });
+
+  $("#new-vehiculo-btn").addEventListener("click", () => {
+    $("#vehiculo-id").value = "";
+    $("#vehiculo-form-title").textContent = "Datos del vehículo";
+    openForm("vehiculo-form-panel", "vehiculo-form");
+  });
+
+  $("#new-compra-btn").addEventListener("click", () => {
+    $("#compra-id").value = "";
+    $("#compra-form-title").textContent = "Registrar compra";
+    openForm("compra-form-panel", "compra-form");
+  });
+
   $("#consumo-placa").addEventListener("change", () => {
     const v = state.vehiculos.find(x => x.placa === $("#consumo-placa").value);
     $("#consumo-modelo").value = v ? `${v.marca} ${v.modelo}` : "";
-    $("#consumo-factor").value = v ? (v.factor || 0) : 0;
+    if (!$("#consumo-id").value) {
+      $("#consumo-factor").value = v ? (v.factor || 0) : 0;
+    }
     updateConsumoPreview();
   });
-  ["kmSalida","kmLlegada","litrosIniciales","litrosCargados","factor"].forEach(n => $(`#consumo-form [name="${n}"]`).addEventListener("input", updateConsumoPreview));
-  ["litros","precioUsd","tasaBcv"].forEach(n => $(`#compra-form [name="${n}"]`).addEventListener("input", updateCompraPreview));
+
+  ["kmSalida","kmLlegada","litrosIniciales","litrosCargados","factor"].forEach(n => {
+    const el = $(`#consumo-form [name="${n}"]`);
+    if (el) el.addEventListener("input", updateConsumoPreview);
+  });
+  ["litros","precioUsd","tasaBcv"].forEach(n => {
+    const el = $(`#compra-form [name="${n}"]`);
+    if (el) el.addEventListener("input", updateCompraPreview);
+  });
 }
 
 function showView(name) {
@@ -154,7 +358,9 @@ function showView(name) {
 function openForm(panelId, formId) {
   $("#" + panelId).classList.remove("hidden");
   const form = $("#" + formId);
-  if (form && form.elements.fecha) form.elements.fecha.value = today();
+  if (form && form.elements.fecha && !form.elements.fecha.value) {
+    form.elements.fecha.value = today();
+  }
   $("#" + panelId).scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -165,9 +371,10 @@ function bindForms() {
     const f = Object.fromEntries(new FormData(form).entries());
     try {
       const result = await apiPost("saveConsumo", f);
-      showToast(`Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado: ${fmt(result.litrosConsumidos,2)} L.`);
+      showToast(f.id ? "Recorrido actualizado." : `Consumo guardado. Recorrido: ${fmt(result.kilometros)} km; consumo estimado: ${fmt(result.litrosConsumidos,2)} L.`);
       
       form?.reset();
+      $("#consumo-id").value = "";
       const factorInput = $("#consumo-factor");
       if (factorInput) factorInput.value = 0;
       const modeloInput = $("#consumo-modelo");
@@ -181,10 +388,12 @@ function bindForms() {
   $("#chofer-form").addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
+    const f = Object.fromEntries(new FormData(form).entries());
     try {
-      await apiPost("saveChofer", Object.fromEntries(new FormData(form).entries()));
-      showToast("Chofer registrado correctamente."); 
-      form?.reset(); 
+      await apiPost("saveChofer", f);
+      showToast(f.id ? "Chofer actualizado correctamente." : "Chofer guardado correctamente."); 
+      form?.reset();
+      $("#chofer-id").value = "";
       $("#chofer-form-panel").classList.add("hidden");
       state.choferes = await apiGet("choferes"); populateSelects(); renderChoferes();
     } catch (err) { showToast(err.message, true); }
@@ -193,10 +402,12 @@ function bindForms() {
   $("#vehiculo-form").addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
+    const f = Object.fromEntries(new FormData(form).entries());
     try {
-      await apiPost("saveVehiculo", Object.fromEntries(new FormData(form).entries()));
-      showToast("Vehículo registrado correctamente."); 
-      form?.reset(); 
+      await apiPost("saveVehiculo", f);
+      showToast(f.id ? "Vehículo actualizado correctamente." : "Vehículo registrado correctamente."); 
+      form?.reset();
+      $("#vehiculo-id").value = "";
       $("#vehiculo-form-panel").classList.add("hidden");
       state.vehiculos = await apiGet("vehiculos"); populateSelects(); renderVehiculos();
     } catch (err) { showToast(err.message, true); }
@@ -205,10 +416,12 @@ function bindForms() {
   $("#compra-form").addEventListener("submit", async e => {
     e.preventDefault();
     const form = e.currentTarget;
+    const f = Object.fromEntries(new FormData(form).entries());
     try {
-      const result = await apiPost("saveCompra", Object.fromEntries(new FormData(form).entries()));
-      showToast(`Compra guardada: ${money(result.importeUSD)} / ${money(result.importeBs,"VES")}.`);
-      form?.reset(); 
+      const result = await apiPost("saveCompra", f);
+      showToast(f.id ? "Compra actualizada correctamente." : `Compra guardada: ${money(result.importeUSD)} / ${money(result.importeBs,"VES")}.`);
+      form?.reset();
+      $("#compra-id").value = "";
       $("#compra-form-panel").classList.add("hidden");
       await Promise.all([loadCompras(), loadDashboard()]);
     } catch (err) { showToast(err.message, true); }
@@ -222,7 +435,7 @@ function updateConsumoPreview() {
   const total = Number(f.elements.litrosIniciales.value || 0) + Number(f.elements.litrosCargados.value || 0);
   const factor = Number(f.elements.factor.value || 0);
   const used = factor > 0 ? Math.min(total, km * factor) : 0;
-  $("#consumo-preview").textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculated: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
+  $("#consumo-preview").textContent = `Recorrido estimado: ${fmt(km)} km · Total disponible: ${fmt(total,2)} L · Consumo calculado: ${fmt(used,2)} L · Restante: ${fmt(total-used,2)} L. ${factor === 0 ? "Defina un factor L/km para calcular el consumo automáticamente." : ""}`;
 }
 
 function updateCompraPreview() {
