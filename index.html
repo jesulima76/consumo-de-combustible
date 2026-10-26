@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#24483f">
+  <title>Control de Consumo de Gasoil | San Diego</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen bg-stone-50 text-slate-800">
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SD</div>
+        <div><strong>TRANSPORTE</strong><span>SAN DIEGO</span></div>
+      </div>
+      <p class="nav-label">GESTIÓN DE FLOTA</p>
+      <nav id="main-nav" class="nav-list" aria-label="Navegación principal">
+        <button class="nav-item active" data-view="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-item" data-view="consumos"><span>◷</span> Control de consumos</button>
+        <button class="nav-item" data-view="choferes"><span>♙</span> Choferes</button>
+        <button class="nav-item" data-view="vehiculos"><span>▰</span> Flota de camiones</button>
+        <button class="nav-item" data-view="compras"><span>＋</span> Compras de gasoil</button>
+      </nav>
+      <div class="sidebar-foot"><span class="status-dot"></span> Sistema de control de combustible</div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="eyebrow">OPERACIONES / FLOTA</p><h1 id="page-title">Dashboard de gestión</h1></div>
+        <div class="topbar-right"><span class="today-label" id="today-label"></span><div class="avatar">SD</div></div>
+      </header>
+
+      <section id="view-dashboard" class="view">
+        <div class="welcome-row">
+          <div><h2>Resumen operativo</h2><p>Indicadores principales de consumo y rendimiento de la flota.</p></div>
+          <div class="filter-inline"><label for="dash-from">Desde</label><input id="dash-from" type="date"><label for="dash-to">Hasta</label><input id="dash-to" type="date"><button id="apply-dash-filter" class="btn btn-primary">Aplicar</button></div>
+        </div>
+        <div id="dashboard-loading" class="loading-panel"><span class="spinner"></span> Cargando indicadores…</div>
+        <div id="kpi-grid" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="panel wide-panel"><div class="panel-heading"><div><h3>Resumen por unidad</h3><p>Rendimiento y actividad registrada por placa.</p></div><span class="panel-icon">▤</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Placa</th><th>Viajes</th><th>Km recorridos</th><th>Litros consumidos</th><th>Rendimiento</th></tr></thead><tbody id="unit-table"></tbody></table></div>
+          </section>
+          <section class="panel"><div class="panel-heading"><div><h3>Accesos rápidos</h3><p>Registra la actividad de la flota.</p></div></div>
+            <div class="quick-actions"><button class="quick-action" data-view="consumos"><span>＋</span><div><b>Registrar consumo</b><small>Nuevo recorrido y combustible</small></div><i>→</i></button>
+            <button class="quick-action" data-view="compras"><span>＋</span><div><b>Registrar compra</b><small>Entrada de combustible</small></div><i>→</i></button>
+            <button class="quick-action" data-view="vehiculos"><span>＋</span><div><b>Agregar vehículo</b><small>Actualizar flota</small></div><i>→</i></button></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-consumos" class="view hidden">
+        <div class="section-intro"><div><h2>Control de consumos</h2><p>Registra kilómetros, abastecimiento y consumo estimado por recorrido.</p></div><button class="btn btn-primary" id="new-consumo-btn">＋ Nuevo consumo</button></div>
+        <section id="consumo-form-panel" class="panel form-panel hidden">
+          <div class="panel-heading"><div><h3>Registrar recorrido</h3><p>Los campos con * son obligatorios.</p></div><button class="icon-button" data-close="consumo-form-panel" aria-label="Cerrar">×</button></div>
+          <form id="consumo-form" class="form-grid">
+            <label>Fecha *<input name="fecha" type="date" required></label>
+            <label>Chofer *<select name="chofer" id="consumo-chofer" required><option value="">Seleccione un chofer</option></select></label>
+            <label>Vehículo / placa *<select name="placa" id="consumo-placa" required><option value="">Seleccione un vehículo</option></select></label>
+            <label>Modelo<input name="modelo" id="consumo-modelo" readonly></label>
+            <label>Zona / ruta<input name="ruta" placeholder="Ej. Valencia - Caracas"></label>
+            <label>Km salida *<input name="kmSalida" type="number" min="0" step="0.1" required></label>
+            <label>Km llegada *<input name="kmLlegada" type="number" min="0" step="0.1" required></label>
+            <label>Litros iniciales *<input name="litrosIniciales" type="number" min="0" step="0.01" required></label>
+            <label>Litros cargados *<input name="litrosCargados" type="number" min="0" step="0.01" required></label>
+            <label>Factor (L/Km)<input name="factor" id="consumo-factor" type="number" min="0" step="0.001" value="0" required><small>Use el factor habitual de la unidad. Cero deja el consumo en 0 hasta definir el método.</small></label>
+            <label class="full-span">Observaciones<textarea name="observaciones" rows="2" placeholder="Incidencias, desvíos, etc."></textarea></label>
+            <div class="form-summary full-span" id="consumo-preview">Complete los kilómetros y litros para revisar los datos.</div>
+            <div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="consumo-form-panel">Cancelar</button><button class="btn btn-primary" type="submit">Guardar consumo</button></div>
+          </form>
+        </section>
+        <section class="panel"><div class="panel-heading"><div><h3>Historial de recorridos</h3><p>Registros más recientes primero.</p></div><div class="filter-inline"><input id="consumo-filter-from" type="date" aria-label="Fecha desde"><input id="consumo-filter-to" type="date" aria-label="Fecha hasta"><select id="consumo-filter-placa" aria-label="Filtrar por placa"><option value="">Todas las placas</option></select><button id="filter-consumos" class="btn btn-secondary">Filtrar</button></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Placa</th><th>Chofer</th><th>Ruta</th><th>Km</th><th>Cargados (L)</th><th>Consumidos (L)</th><th>Km/L</th></tr></thead><tbody id="consumos-table"></tbody></table></div>
+        </section>
+      </section>
+
+      <section id="view-choferes" class="view hidden">
+        <div class="section-intro"><div><h2>Registro de choferes</h2><p>Administra los conductores habilitados para operar la flota.</p></div><button class="btn btn-primary" id="new-chofer-btn">＋ Nuevo chofer</button></div>
+        <section id="chofer-form-panel" class="panel form-panel hidden"><div class="panel-heading"><div><h3>Datos del chofer</h3></div><button class="icon-button" data-close="chofer-form-panel">×</button></div>
+          <form id="chofer-form" class="form-grid"><label>Nombre completo *<input name="nombre" required></label><label>Cédula de identidad *<input name="cedula" required></label><label class="full-span">Dirección<textarea name="direccion" rows="2"></textarea></label><label>Estatus *<select name="estatus" required><option>Activo</option><option>Inactivo</option></select></label><div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="chofer-form-panel">Cancelar</button><button class="btn btn-primary">Guardar chofer</button></div></form>
+        </section>
+        <section class="panel"><div class="panel-heading"><div><h3>Choferes registrados</h3><p id="chofer-count">Listado de conductores.</p></div></div><div id="chofer-cards" class="entity-grid"></div></section>
+      </section>
+
+      <section id="view-vehiculos" class="view hidden">
+        <div class="section-intro"><div><h2>Flota de camiones</h2><p>Control de unidades propias y afiliadas.</p></div><button class="btn btn-primary" id="new-vehiculo-btn">＋ Nuevo vehículo</button></div>
+        <section id="vehiculo-form-panel" class="panel form-panel hidden"><div class="panel-heading"><div><h3>Datos del vehículo</h3></div><button class="icon-button" data-close="vehiculo-form-panel">×</button></div>
+          <form id="vehiculo-form" class="form-grid"><label>Marca *<input name="marca" required></label><label>Modelo *<input name="modelo" required></label><label>Año<input name="año" type="number" min="1950" max="2100"></label><label>Placa *<input name="placa" required></label><label>Tipo de unidad *<select name="estatus" required><option>Propio</option><option>Afiliado</option><option>Inactivo</option></select></label><label>Factor habitual (L/Km)<input name="factor" type="number" min="0" step="0.001" value="0"></label><div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="vehiculo-form-panel">Cancelar</button><button class="btn btn-primary">Guardar vehículo</button></div></form>
+        </section>
+        <section class="panel"><div class="panel-heading"><div><h3>Unidades registradas</h3><p id="vehiculo-count">Listado de la flota.</p></div></div><div id="vehiculo-cards" class="entity-grid"></div></section>
+      </section>
+
+      <section id="view-compras" class="view hidden">
+        <div class="section-intro"><div><h2>Compras de gasoil</h2><p>Registra las compras para diferenciar entradas de combustible y consumo operativo.</p></div><button class="btn btn-primary" id="new-compra-btn">＋ Nueva compra</button></div>
+        <section id="compra-form-panel" class="panel form-panel hidden"><div class="panel-heading"><div><h3>Registrar compra</h3></div><button class="icon-button" data-close="compra-form-panel">×</button></div>
+          <form id="compra-form" class="form-grid"><label>Fecha *<input name="fecha" type="date" required></label><label>Proveedor<input name="proveedor"></label><label>Litros comprados *<input name="litros" type="number" min="0.01" step="0.01" required></label><label>Precio USD por litro *<input name="precioUsd" type="number" min="0" step="0.0001" required></label><label>Tasa BCV (Bs/USD) *<input name="tasaBcv" type="number" min="0.0001" step="0.0001" required></label><label class="full-span">Observaciones<textarea name="observaciones" rows="2"></textarea></label><div id="compra-preview" class="form-summary full-span">El importe se calcula automáticamente.</div><div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="compra-form-panel">Cancelar</button><button class="btn btn-primary">Guardar compra</button></div></form>
+        </section>
+        <section class="panel"><div class="panel-heading"><div><h3>Historial de compras</h3></div><div class="filter-inline"><input id="compras-filter-from" type="date" aria-label="Fecha desde"><input id="compras-filter-to" type="date" aria-label="Fecha hasta"><button id="filter-compras" class="btn btn-secondary">Filtrar</button></div></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Litros</th><th>Precio USD/L</th><th>Tasa BCV</th><th>Total USD</th><th>Total Bs</th></tr></thead><tbody id="compras-table"></tbody></table></div></section>
+      </section>
+      <footer class="app-footer">Control de Consumo de Gasoil · Transporte San Diego</footer>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
