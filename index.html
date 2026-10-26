@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#24483f">
   <title>Control de Consumo de Gasoil | San Diego</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-screen">
@@ -93,7 +92,12 @@
             <div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="chofer-form-panel">Cancelar</button><button class="btn btn-primary">Guardar chofer</button></div>
           </form>
         </section>
-        <section class="panel"><div class="panel-heading"><div><h3>Choferes registrados</h3><p id="chofer-count">Listado de conductores.</p></div></div><div id="chofer-cards" class="entity-grid"></div></section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div><h3>Choferes registrados</h3><p id="chofer-count">Listado de conductores.</p></div>
+          </div>
+          <div id="chofer-cards" class="entity-grid"></div>
+        </section>
       </section>
 
       <section id="view-vehiculos" class="view hidden">
@@ -111,7 +115,12 @@
             <div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="vehiculo-form-panel">Cancelar</button><button class="btn btn-primary">Guardar vehículo</button></div>
           </form>
         </section>
-        <section class="panel"><div class="panel-heading"><div><h3>Unidades registradas</h3><p id="vehiculo-count">Listado de la flota.</p></div></div><div id="vehiculo-cards" class="entity-grid"></div></section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div><h3>Unidades registradas</h3><p id="vehiculo-count">Listado de la flota.</p></div>
+          </div>
+          <div id="vehiculo-cards" class="entity-grid"></div>
+        </section>
       </section>
 
       <section id="view-compras" class="view hidden">
