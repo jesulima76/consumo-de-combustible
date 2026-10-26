@@ -1,6 +1,6 @@
 /**
- * Frontend de Control de Consumo de Gasoil.
- * Configure API_URL con la URL /exec del despliegue de Google Apps Script.
+ * Frontend de Control de Consumo de Gasoil - Fleet Fuel Telematics
+ * Adaptado a la guía de estilo DESIGN.md.
  */
 const API_URL = "https://script.google.com/macros/s/AKfycbzGRZJXSS9yXPsZtShiQ41lCetNcmVGvYz9rqs03Z6kWGpR9jnLeseskM9TqWwl0_ZkHw/exec";
 
@@ -91,7 +91,7 @@ function renderDashboard(d) {
     ["Litros consumidos", fmt(d.litrosConsumidos, 2), "litros estimados", "◉"],
     ["Rendimiento promedio", fmt(d.rendimientoPromedio, 2), "km por litro", "⌁"],
     ["Compras en USD", money(d.importeUSD), "importe registrado", "$"],
-    ["Compras en bolívares", money(d.importeBs, "VES"), "según tasa BCV registrada", "Bs"],
+    ["Compras en bolívares", money(d.importeBs, "VES"), "según tasa BCV", "Bs"],
     ["Recorridos registrados", fmt(d.totalRegistros, 0), "registros", "▤"]
   ];
   
@@ -103,7 +103,7 @@ function renderDashboard(d) {
           <span class="kpi-label">${c[0]}</span>
           <span class="kpi-icon">${c[3]}</span>
         </div>
-        <div class="kpi-value">${c[1]}</div>
+        <div class="kpi-value tabular-nums">${c[1]}</div>
         <div class="kpi-unit">${c[2]}</div>
       </article>
     `).join("");
@@ -114,11 +114,11 @@ function renderDashboard(d) {
   if (unitTable) {
     unitTable.innerHTML = units.length ? units.map(x => `
       <tr>
-        <td><strong>${esc(x.placa)}</strong></td>
-        <td>${fmt(x.viajes,0)}</td>
-        <td>${fmt(x.km)} km</td>
-        <td>${fmt(x.litros,2)} L</td>
-        <td>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</td>
+        <td><span class="pill">${esc(x.placa)}</span></td>
+        <td class="tabular-nums">${fmt(x.viajes,0)}</td>
+        <td class="tabular-nums">${fmt(x.km)} km</td>
+        <td class="tabular-nums">${fmt(x.litros,2)} L</td>
+        <td class="tabular-nums"><strong>${x.rendimiento > 0 ? fmt(x.rendimiento,2) + " km/L" : "—"}</strong></td>
       </tr>
     `).join("") : emptyRow(5, "No hay consumos en el período seleccionado.");
   }
@@ -130,13 +130,13 @@ function renderConsumos() {
   table.innerHTML = state.consumos.length ? state.consumos.map(x => `
     <tr>
       <td>${esc(x.Fecha)}</td>
-      <td><strong>${esc(x.Placa)}</strong></td>
+      <td><span class="pill">${esc(x.Placa)}</span></td>
       <td>${esc(x.Chofer)}</td>
       <td>${esc(x["Zona / Ruta"] || "—")}</td>
-      <td>${fmt(x["Km Recorridos"])} km</td>
-      <td>${fmt(x["Litros Cargados"],2)} L</td>
-      <td>${fmt(x["Litros Consumidos"],2)} L</td>
-      <td>${Number(x["Rendimiento (Km/L)"]) > 0 ? fmt(x["Rendimiento (Km/L)"],2) : "—"}</td>
+      <td class="tabular-nums">${fmt(x["Km Recorridos"])} km</td>
+      <td class="tabular-nums">${fmt(x["Litros Cargados"],2)} L</td>
+      <td class="tabular-nums">${fmt(x["Litros Consumidos"],2)} L</td>
+      <td class="tabular-nums">${Number(x["Rendimiento (Km/L)"]) > 0 ? fmt(x["Rendimiento (Km/L)"],2) : "—"}</td>
       <td class="text-right">
         <div class="action-group">
           <button class="btn btn-outline btn-sm" onclick="editConsumo('${esc(x.ID)}')">Editar</button>
@@ -154,11 +154,11 @@ function renderCompras() {
     <tr>
       <td>${esc(x.Fecha)}</td>
       <td>${esc(x.Proveedor || "—")}</td>
-      <td>${fmt(x["Litros Comprados"],2)} L</td>
-      <td>${money(x["Precio USD/L"])}</td>
-      <td>${fmt(x["Tasa BCV"],4)}</td>
-      <td>${money(x["Importe USD"])}</td>
-      <td>${money(x["Importe Bs"],"VES")}</td>
+      <td class="tabular-nums">${fmt(x["Litros Comprados"],2)} L</td>
+      <td class="tabular-nums">${money(x["Precio USD/L"])}</td>
+      <td class="tabular-nums">${fmt(x["Tasa BCV"],4)}</td>
+      <td class="tabular-nums">${money(x["Importe USD"])}</td>
+      <td class="tabular-nums">${money(x["Importe Bs"],"VES")}</td>
       <td class="text-right">
         <div class="action-group">
           <button class="btn btn-outline btn-sm" onclick="editCompra('${esc(x.ID)}')">Editar</button>
@@ -176,25 +176,31 @@ function renderChoferes() {
   const cardsEl = $("#chofer-cards");
   if (!cardsEl) return;
   
-  cardsEl.innerHTML = state.choferes.length ? state.choferes.map(x => `
-    <article class="entity-card">
-      <div class="entity-card-head">
-        <div class="entity-avatar">${esc(initials(x.nombre))}</div>
-        <div>
-          <h4>${esc(x.nombre)}</h4>
-          <p>C.I. ${esc(x.cedula)}</p>
+  cardsEl.innerHTML = state.choferes.length ? state.choferes.map(x => {
+    const isActivo = String(x.estatus).toLowerCase() === "activo";
+    const statusClass = isActivo ? "" : "status-warning";
+    const pillClass = isActivo ? "" : "sand";
+    
+    return `
+      <article class="entity-card ${statusClass}">
+        <div class="entity-card-head">
+          <div class="entity-avatar">${esc(initials(x.nombre))}</div>
+          <div>
+            <h4>${esc(x.nombre)}</h4>
+            <p>C.I. ${esc(x.cedula)}</p>
+          </div>
         </div>
-      </div>
-      <div class="entity-meta">
-        <span>${esc(x.direccion || "Dirección no registrada")}</span>
-        <span class="pill ${String(x.estatus).toLowerCase() !== "activo" ? "sand" : ""}">${esc(x.estatus)}</span>
-      </div>
-      <div class="entity-actions">
-        <button type="button" class="btn btn-outline btn-sm" onclick="editChofer('${esc(x.id)}')">Editar</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChofer('${esc(x.id)}', '${esc(x.nombre)}')">Eliminar</button>
-      </div>
-    </article>
-  `).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
+        <div class="entity-meta">
+          <span>${esc(x.direccion || "Dirección no registrada")}</span>
+          <span class="pill ${pillClass}">${esc(x.estatus)}</span>
+        </div>
+        <div class="entity-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="editChofer('${esc(x.id)}')">Editar</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteChofer('${esc(x.id)}', '${esc(x.nombre)}')">Eliminar</button>
+        </div>
+      </article>
+    `;
+  }).join("") : `<p class="empty-cell">Todavía no hay choferes registrados.</p>`;
 }
 
 function renderVehiculos() {
@@ -204,29 +210,43 @@ function renderVehiculos() {
   const cardsEl = $("#vehiculo-cards");
   if (!cardsEl) return;
 
-  cardsEl.innerHTML = state.vehiculos.length ? state.vehiculos.map(x => `
-    <article class="entity-card">
-      <div class="entity-card-head">
-        <div class="entity-avatar">▰</div>
-        <div>
-          <h4>${esc(x.placa)}</h4>
-          <p>${esc(x.marca)} ${esc(x.modelo)}</p>
+  cardsEl.innerHTML = state.vehiculos.length ? state.vehiculos.map(x => {
+    const estatusStr = String(x.estatus).toLowerCase();
+    let statusClass = "";
+    let pillClass = "";
+    
+    if (estatusStr === "inactivo") {
+      statusClass = "status-danger";
+      pillClass = "danger";
+    } else if (estatusStr === "afiliado") {
+      statusClass = "status-warning";
+      pillClass = "sand";
+    }
+
+    return `
+      <article class="entity-card ${statusClass}">
+        <div class="entity-card-head">
+          <div class="entity-avatar">TRK</div>
+          <div>
+            <h4>${esc(x.placa)}</h4>
+            <p>${esc(x.marca)} ${esc(x.modelo)}</p>
+          </div>
         </div>
-      </div>
-      <div class="entity-meta">
-        <span>${esc(x.año || "Año no indicado")}</span>
-        <span class="pill ${String(x.estatus).toLowerCase() === "afiliado" ? "sand" : ""}">${esc(x.estatus)}</span>
-      </div>
-      <p style="margin-top:10px">Factor habitual: ${fmt(x.factor,3)} L/km</p>
-      <div class="entity-actions">
-        <button type="button" class="btn btn-outline btn-sm" onclick="editVehiculo('${esc(x.id)}')">Editar</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteVehiculo('${esc(x.id)}', '${esc(x.placa)}')">Eliminar</button>
-      </div>
-    </article>
-  `).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
+        <div class="entity-meta">
+          <span>Año: ${esc(x.año || "N/A")}</span>
+          <span class="pill ${pillClass}">${esc(x.estatus)}</span>
+        </div>
+        <p style="margin-top:10px; font-size:12px;" class="tabular-nums">Factor habitual: <strong>${fmt(x.factor,3)} L/km</strong></p>
+        <div class="entity-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="editVehiculo('${esc(x.id)}')">Editar</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteVehiculo('${esc(x.id)}', '${esc(x.placa)}')">Eliminar</button>
+        </div>
+      </article>
+    `;
+  }).join("") : `<p class="empty-cell">Todavía no hay vehículos registrados.</p>`;
 }
 
-/* FUNCIONES DE ACCIÓN EXPORTADAS AL ÁMBITO GLOBAL (WINDOW) */
+/* FUNCIONES DE ACCIÓN EN EL ÁMBITO GLOBAL (WINDOW) */
 window.editChofer = function(id) {
   const chofer = state.choferes.find(c => String(c.id) === String(id));
   if (!chofer) return;
@@ -348,8 +368,8 @@ function populateSelects() {
 }
 
 function bindNavigation() {
-  $$("#main-nav [data-view], .quick-action[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view))); $$
-("[data-close]").forEach(btn => btn.addEventListener("click", () => {
+  $$("#main-nav [data-view], .quick-action[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
+  $$("[data-close]").forEach(btn => btn.addEventListener("click", () => {
     const target = $("#" + btn.dataset.close);
     if (target) target.classList.add("hidden");
   }));
@@ -397,8 +417,16 @@ function bindNavigation() {
   });
   
   ["litros","precioUsd","tasaBcv"].forEach(n => {
-    const el = $(`#compra-form [name="${n}"]`); if (el) el.addEventListener("input", updateCompraPreview); }); }  function showView(name) { $$(".view").forEach(v => v.classList.add("hidden"));
-  const targetView = $("#view-" + name); if (targetView) targetView.classList.remove("hidden"); $$("#main-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+    const el = $(`#compra-form [name="${n}"]`);
+    if (el) el.addEventListener("input", updateCompraPreview);
+  });
+}
+
+function showView(name) {
+  $$(".view").forEach(v => v.classList.add("hidden"));
+  const targetView = $("#view-" + name);
+  if (targetView) targetView.classList.remove("hidden");
+  $$("#main-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   const titles = { dashboard: "Dashboard de gestión", consumos: "Control de consumos", choferes: "Registro de choferes", vehiculos: "Flota de camiones", compras: "Compras de gasoil" };
   const pageTitle = $("#page-title");
   if (pageTitle) pageTitle.textContent = titles[name] || "Control de flota";
