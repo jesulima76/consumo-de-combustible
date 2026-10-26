@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#24483f">
-  <title>Control de Consumo de Gasoil | San Diego</title>
+  <meta name="theme-color" content="#0b1c30">
+  <title>Control de Consumo de Gasoil | Fleet Fuel Telematics</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen">
+<body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="app-shell">
     <aside class="sidebar">
@@ -23,7 +23,7 @@
         <button class="nav-item" data-view="vehiculos"><span>▰</span> Flota de camiones</button>
         <button class="nav-item" data-view="compras"><span>＋</span> Compras de gasoil</button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Sistema de control de combustible</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Telemetría de combustible</div>
     </aside>
 
     <main class="main-content">
@@ -32,18 +32,35 @@
         <div class="topbar-right"><span class="today-label" id="today-label"></span><div class="avatar">SD</div></div>
       </header>
 
+      <!-- VISTA DASHBOARD -->
       <section id="view-dashboard" class="view">
         <div class="welcome-row">
           <div><h2>Resumen operativo</h2><p>Indicadores principales de consumo y rendimiento de la flota.</p></div>
-          <div class="filter-inline"><label for="dash-from">Desde</label><input id="dash-from" type="date"><label for="dash-to">Hasta</label><input id="dash-to" type="date"><button id="apply-dash-filter" class="btn btn-primary">Aplicar</button></div>
+          <div class="filter-inline">
+            <label for="dash-from">Desde</label><input id="dash-from" type="date">
+            <label for="dash-to">Hasta</label><input id="dash-to" type="date">
+            <button id="apply-dash-filter" class="btn btn-primary">Aplicar</button>
+          </div>
         </div>
-        <div id="dashboard-loading" class="loading-panel"><span class="spinner"></span> Cargando indicadores…</div>
+        <div id="dashboard-loading" class="loading-panel"><span class="spinner"></span> Cargando indicadores telemáticos…</div>
         <div id="kpi-grid" class="kpi-grid"></div>
         <div class="dashboard-grid">
-          <section class="panel wide-panel"><div class="panel-heading"><div><h3>Resumen por unidad</h3><p>Rendimiento y actividad registrada por placa.</p></div><span class="panel-icon">▤</span></div>
-            <div class="table-wrap"><table><thead><tr><th>Placa</th><th>Viajes</th><th>Km recorridos</th><th>Litros consumidos</th><th>Rendimiento</th></tr></thead><tbody id="unit-table"></tbody></table></div>
+          <section class="panel wide-panel">
+            <div class="panel-heading">
+              <div><h3>Resumen por unidad</h3><p>Rendimiento y actividad registrada por placa.</p></div>
+              <span class="panel-icon">▤</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Placa</th><th>Viajes</th><th>Km recorridos</th><th>Litros consumidos</th><th>Rendimiento</th></tr>
+                </thead>
+                <tbody id="unit-table"></tbody>
+              </table>
+            </div>
           </section>
-          <section class="panel"><div class="panel-heading"><div><h3>Accesos rápidos</h3><p>Registra la actividad de la flota.</p></div></div>
+          <section class="panel">
+            <div class="panel-heading"><div><h3>Accesos rápidos</h3><p>Registra la actividad de la flota.</p></div></div>
             <div class="quick-actions">
               <button class="quick-action" data-view="consumos"><span>＋</span><div><b>Registrar consumo</b><small>Nuevo recorrido y combustible</small></div><i>→</i></button>
               <button class="quick-action" data-view="compras"><span>＋</span><div><b>Registrar compra</b><small>Entrada de combustible</small></div><i>→</i></button>
@@ -53,6 +70,7 @@
         </div>
       </section>
 
+      <!-- VISTA CONSUMOS -->
       <section id="view-consumos" class="view hidden">
         <div class="section-intro"><div><h2>Control de consumos</h2><p>Registra kilómetros, abastecimiento y consumo estimado por recorrido.</p></div><button class="btn btn-primary" id="new-consumo-btn">＋ Nuevo consumo</button></div>
         <section id="consumo-form-panel" class="panel form-panel hidden">
@@ -68,17 +86,32 @@
             <label>Km llegada *<input name="kmLlegada" id="consumo-kmLlegada" type="number" min="0" step="0.1" required></label>
             <label>Litros iniciales *<input name="litrosIniciales" id="consumo-litrosIniciales" type="number" min="0" step="0.01" required></label>
             <label>Litros cargados *<input name="litrosCargados" id="consumo-litrosCargados" type="number" min="0" step="0.01" required></label>
-            <label>Factor (L/Km)<input name="factor" id="consumo-factor" type="number" min="0" step="0.001" value="0" required><small>Use el factor habitual de la unidad. Cero deja el consumo en 0 hasta definir el método.</small></label>
+            <label>Factor (L/Km)<input name="factor" id="consumo-factor" type="number" min="0" step="0.001" value="0" required><small>Use el factor habitual de la unidad.</small></label>
             <label class="full-span">Observaciones<textarea name="observaciones" id="consumo-observaciones" rows="2" placeholder="Incidencias, desvíos, etc."></textarea></label>
             <div class="form-summary full-span" id="consumo-preview">Complete los kilómetros y litros para revisar los datos.</div>
             <div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="consumo-form-panel">Cancelar</button><button class="btn btn-primary" type="submit">Guardar consumo</button></div>
           </form>
         </section>
-        <section class="panel"><div class="panel-heading"><div><h3>Historial de recorridos</h3><p>Registros más recientes primero.</p></div><div class="filter-inline"><input id="consumo-filter-from" type="date" aria-label="Fecha desde"><input id="consumo-filter-to" type="date" aria-label="Fecha hasta"><select id="consumo-filter-placa" aria-label="Filtrar por placa"><option value="">Todas las placas</option></select><button id="filter-consumos" class="btn btn-secondary">Filtrar</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Placa</th><th>Chofer</th><th>Ruta</th><th>Km</th><th>Cargados (L)</th><th>Consumidos (L)</th><th>Km/L</th><th class="text-right">Acciones</th></tr></thead><tbody id="consumos-table"></tbody></table></div>
+        <section class="panel">
+          <div class="panel-heading">
+            <div><h3>Historial de recorridos</h3><p>Registros más recientes primero.</p></div>
+            <div class="filter-inline">
+              <input id="consumo-filter-from" type="date" aria-label="Fecha desde">
+              <input id="consumo-filter-to" type="date" aria-label="Fecha hasta">
+              <select id="consumo-filter-placa" aria-label="Filtrar por placa"><option value="">Todas las placas</option></select>
+              <button id="filter-consumos" class="btn btn-secondary">Filtrar</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha</th><th>Placa</th><th>Chofer</th><th>Ruta</th><th>Km</th><th>Cargados (L)</th><th>Consumidos (L)</th><th>Km/L</th><th class="text-right">Acciones</th></tr></thead>
+              <tbody id="consumos-table"></tbody>
+            </table>
+          </div>
         </section>
       </section>
 
+      <!-- VISTA CHOFERES -->
       <section id="view-choferes" class="view hidden">
         <div class="section-intro"><div><h2>Registro de choferes</h2><p>Administra los conductores habilitados para operar la flota.</p></div><button class="btn btn-primary" id="new-chofer-btn">＋ Nuevo chofer</button></div>
         <section id="chofer-form-panel" class="panel form-panel hidden">
@@ -93,13 +126,12 @@
           </form>
         </section>
         <section class="panel">
-          <div class="panel-heading">
-            <div><h3>Choferes registrados</h3><p id="chofer-count">Listado de conductores.</p></div>
-          </div>
+          <div class="panel-heading"><div><h3>Choferes registrados</h3><p id="chofer-count">Listado de conductores.</p></div></div>
           <div id="chofer-cards" class="entity-grid"></div>
         </section>
       </section>
 
+      <!-- VISTA CAMIONES / VEHÍCULOS -->
       <section id="view-vehiculos" class="view hidden">
         <div class="section-intro"><div><h2>Flota de camiones</h2><p>Control de unidades propias y afiliadas.</p></div><button class="btn btn-primary" id="new-vehiculo-btn">＋ Nuevo vehículo</button></div>
         <section id="vehiculo-form-panel" class="panel form-panel hidden">
@@ -116,13 +148,12 @@
           </form>
         </section>
         <section class="panel">
-          <div class="panel-heading">
-            <div><h3>Unidades registradas</h3><p id="vehiculo-count">Listado de la flota.</p></div>
-          </div>
+          <div class="panel-heading"><div><h3>Unidades registradas</h3><p id="vehiculo-count">Listado de la flota.</p></div></div>
           <div id="vehiculo-cards" class="entity-grid"></div>
         </section>
       </section>
 
+      <!-- VISTA COMPRAS -->
       <section id="view-compras" class="view hidden">
         <div class="section-intro"><div><h2>Compras de gasoil</h2><p>Registra las compras para diferenciar entradas de combustible y consumo operativo.</p></div><button class="btn btn-primary" id="new-compra-btn">＋ Nueva compra</button></div>
         <section id="compra-form-panel" class="panel form-panel hidden">
@@ -139,8 +170,12 @@
             <div class="form-actions full-span"><button type="button" class="btn btn-secondary" data-close="compra-form-panel">Cancelar</button><button class="btn btn-primary">Guardar compra</button></div>
           </form>
         </section>
-        <section class="panel"><div class="panel-heading"><div><h3>Historial de compras</h3></div><div class="filter-inline"><input id="compras-filter-from" type="date" aria-label="Fecha desde"><input id="compras-filter-to" type="date" aria-label="Fecha hasta"><button id="filter-compras" class="btn btn-secondary">Filtrar</button></div></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Litros</th><th>Precio USD/L</th><th>Tasa BCV</th><th>Total USD</th><th>Total Bs</th><th class="text-right">Acciones</th></tr></thead><tbody id="compras-table"></tbody></table></div></section>
+        <section class="panel">
+          <div class="panel-heading"><div><h3>Historial de compras</h3></div><div class="filter-inline"><input id="compras-filter-from" type="date" aria-label="Fecha desde"><input id="compras-filter-to" type="date" aria-label="Fecha hasta"><button id="filter-compras" class="btn btn-secondary">Filtrar</button></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Litros</th><th>Precio USD/L</th><th>Tasa BCV</th><th>Total USD</th><th>Total Bs</th><th class="text-right">Acciones</th></tr></thead><tbody id="compras-table"></tbody></table></div>
+        </section>
       </section>
+
       <footer class="app-footer">Control de Consumo de Gasoil · Transporte San Diego</footer>
     </main>
   </div>
